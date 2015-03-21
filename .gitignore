@@ -11,6 +11,11 @@
 # generated files
 bin/
 gen/
+build/
 
 # Local configuration file (sdk path, etc)
 local.properties
+
+# IntelliJ Files
+.idea/
+*.iml

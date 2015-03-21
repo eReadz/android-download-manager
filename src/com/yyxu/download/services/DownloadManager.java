@@ -2,7 +2,7 @@
 package com.yyxu.download.services;
 
 import com.yyxu.download.utils.ConfigUtils;
-import com.yyxu.download.utils.MyIntents;
+import com.yyxu.download.utils.DownloadManagerIntent;
 import com.yyxu.download.utils.NetworkUtils;
 import com.yyxu.download.utils.StorageUtils;
 
@@ -111,10 +111,9 @@ public class DownloadManager extends Thread {
 
     private void broadcastAddTask(String url, boolean isInterrupt) {
 
-        Intent nofityIntent = new Intent("com.yyxu.download.activities.DownloadListActivity");
-        nofityIntent.putExtra(MyIntents.TYPE, MyIntents.Types.ADD);
-        nofityIntent.putExtra(MyIntents.URL, url);
-        nofityIntent.putExtra(MyIntents.IS_PAUSED, isInterrupt);
+        Intent nofityIntent = new Intent(DownloadManagerIntent.Action.ADD_COMPLETED);
+        nofityIntent.putExtra(DownloadManagerIntent.URL, url);
+        nofityIntent.putExtra(DownloadManagerIntent.IS_PAUSED, isInterrupt);
         mContext.sendBroadcast(nofityIntent);
     }
 
@@ -293,9 +292,8 @@ public class DownloadManager extends Thread {
             mDownloadingTasks.remove(task);
 
             // notify list changed
-            Intent nofityIntent = new Intent("com.yyxu.download.activities.DownloadListActivity");
-            nofityIntent.putExtra(MyIntents.TYPE, MyIntents.Types.COMPLETE);
-            nofityIntent.putExtra(MyIntents.URL, task.getUrl());
+            Intent nofityIntent = new Intent(DownloadManagerIntent.Action.DOWNLOAD_COMPLETED);
+            nofityIntent.putExtra(DownloadManagerIntent.URL, task.getUrl());
             mContext.sendBroadcast(nofityIntent);
         }
     }
@@ -314,13 +312,11 @@ public class DownloadManager extends Thread {
             @Override
             public void updateProcess(DownloadTask task) {
 
-                Intent updateIntent = new Intent(
-                        "com.yyxu.download.activities.DownloadListActivity");
-                updateIntent.putExtra(MyIntents.TYPE, MyIntents.Types.PROCESS);
-                updateIntent.putExtra(MyIntents.PROCESS_SPEED, task.getDownloadSpeed() + "kbps | "
+                Intent updateIntent = new Intent(DownloadManagerIntent.Action.PROGRESS_UPDATED);
+                updateIntent.putExtra(DownloadManagerIntent.PROCESS_SPEED, task.getDownloadSpeed() + "kbps | "
                         + task.getDownloadSize() + " / " + task.getTotalSize());
-                updateIntent.putExtra(MyIntents.PROCESS_PROGRESS, task.getDownloadPercent() + "");
-                updateIntent.putExtra(MyIntents.URL, task.getUrl());
+                updateIntent.putExtra(DownloadManagerIntent.PROCESS_PROGRESS, task.getDownloadPercent() + "");
+                updateIntent.putExtra(DownloadManagerIntent.URL, task.getUrl());
                 mContext.sendBroadcast(updateIntent);
             }
 

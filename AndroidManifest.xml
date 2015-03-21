@@ -19,7 +19,12 @@
         </service>
         <service android:name=".services.DownloadService" >
             <intent-filter >
-                <action android:name="com.yyxu.download.services.IDownloadService" />
+                <action android:name="com.ereadz.downloadmanager.ACTION_START" />
+                <action android:name="com.ereadz.downloadmanager.ACTION_STOP" />
+                <action android:name="com.ereadz.downloadmanager.ACTION_ADD" />
+                <action android:name="com.ereadz.downloadmanager.ACTION_PAUSE" />
+                <action android:name="com.ereadz.downloadmanager.ACTION_CONTINUE" />
+                <action android:name="com.ereadz.downloadmanager.ACTION_DELETE" />
             </intent-filter>
         </service>
     </application>

@@ -1,117 +1,119 @@
 
 package com.yyxu.download.services;
 
-import com.yyxu.download.utils.MyIntents;
+import com.yyxu.download.utils.DownloadManagerIntent;
 
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.text.TextUtils;
+import android.util.Log;
 
 public class DownloadService extends Service {
+    public static final String TAG = "DownloadService";
 
     private DownloadManager mDownloadManager;
 
     @Override
-    public IBinder onBind(Intent intent) {
-
-        return new DownloadServiceImpl();
-    }
-
-    @Override
     public void onCreate() {
-
         super.onCreate();
+        Log.d(TAG, "onCreate()");
         mDownloadManager = new DownloadManager(this);
     }
 
     @Override
-    public void onStart(Intent intent, int startId) {
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        super.onStartCommand(intent, flags, startId);
 
-        super.onStart(intent, startId);
-
-        // if (mDownloadManager == null) {
-        // mDownloadManager = new DownloadManager(this);
-        // }
-
-        if (intent.getAction().equals("com.yyxu.download.services.IDownloadService")) {
-            int type = intent.getIntExtra(MyIntents.TYPE, -1);
-            String url;
-
-            switch (type) {
-                case MyIntents.Types.START:
-                    if (!mDownloadManager.isRunning()) {
-                        mDownloadManager.startManage();
-                    } else {
-                        mDownloadManager.reBroadcastAddAllTask();
-                    }
-                    break;
-                case MyIntents.Types.ADD:
-                    url = intent.getStringExtra(MyIntents.URL);
-                    if (!TextUtils.isEmpty(url) && !mDownloadManager.hasTask(url)) {
-                        mDownloadManager.addTask(url);
-                    }
-                    break;
-                case MyIntents.Types.CONTINUE:
-                    url = intent.getStringExtra(MyIntents.URL);
-                    if (!TextUtils.isEmpty(url)) {
-                        mDownloadManager.continueTask(url);
-                    }
-                    break;
-                case MyIntents.Types.DELETE:
-                    url = intent.getStringExtra(MyIntents.URL);
-                    if (!TextUtils.isEmpty(url)) {
-                        mDownloadManager.deleteTask(url);
-                    }
-                    break;
-                case MyIntents.Types.PAUSE:
-                    url = intent.getStringExtra(MyIntents.URL);
-                    if (!TextUtils.isEmpty(url)) {
-                        mDownloadManager.pauseTask(url);
-                    }
-                    break;
-                case MyIntents.Types.STOP:
-                    mDownloadManager.close();
-                    // mDownloadManager = null;
-                    break;
-
-                default:
-                    break;
+        Log.d(TAG, "onStartCommand()");
+        String url;
+        if (DownloadManagerIntent.Action.START.equalsIgnoreCase(intent.getAction())) {
+            if (!mDownloadManager.isRunning()) {
+                mDownloadManager.startManage();
+            } else {
+                mDownloadManager.reBroadcastAddAllTask();
             }
+        } else if (DownloadManagerIntent.Action.ADD.equalsIgnoreCase(intent.getAction())) {
+            url = intent.getStringExtra(DownloadManagerIntent.URL);
+            if (!TextUtils.isEmpty(url) && !mDownloadManager.hasTask(url)) {
+                mDownloadManager.addTask(url);
+            }
+        } else if (DownloadManagerIntent.Action.CONTINUE.equalsIgnoreCase(intent.getAction())) {
+            url = intent.getStringExtra(DownloadManagerIntent.URL);
+            if (!TextUtils.isEmpty(url)) {
+                mDownloadManager.continueTask(url);
+            }
+        } else if (DownloadManagerIntent.Action.DELETE.equalsIgnoreCase(intent.getAction())) {
+            url = intent.getStringExtra(DownloadManagerIntent.URL);
+            if (!TextUtils.isEmpty(url)) {
+                mDownloadManager.deleteTask(url);
+            }
+        } else if (DownloadManagerIntent.Action.PAUSE.equalsIgnoreCase(intent.getAction())) {
+            url = intent.getStringExtra(DownloadManagerIntent.URL);
+            if (!TextUtils.isEmpty(url)) {
+                mDownloadManager.pauseTask(url);
+            }
+        } else if (DownloadManagerIntent.Action.STOP.equalsIgnoreCase(intent.getAction())) {
+            mDownloadManager.close();
+            stopSelf();
         }
-
+//        if (intent.getAction().equals("com.yyxu.download.services.IDownloadService")) {
+//            int type = intent.getIntExtra(DownloadManagerIntent.TYPE, -1);
+//            String url;
+//
+//            switch (type) {
+//                case DownloadManagerIntent.Types.START:
+//                    if (!mDownloadManager.isRunning()) {
+//                        mDownloadManager.startManage();
+//                    } else {
+//                        mDownloadManager.reBroadcastAddAllTask();
+//                    }
+//                    break;
+//                case DownloadManagerIntent.Types.ADD:
+//                    url = intent.getStringExtra(DownloadManagerIntent.URL);
+//                    if (!TextUtils.isEmpty(url) && !mDownloadManager.hasTask(url)) {
+//                        mDownloadManager.addTask(url);
+//                    }
+//                    break;
+//                case DownloadManagerIntent.Types.CONTINUE:
+//                    url = intent.getStringExtra(DownloadManagerIntent.URL);
+//                    if (!TextUtils.isEmpty(url)) {
+//                        mDownloadManager.continueTask(url);
+//                    }
+//                    break;
+//                case DownloadManagerIntent.Types.DELETE:
+//                    url = intent.getStringExtra(DownloadManagerIntent.URL);
+//                    if (!TextUtils.isEmpty(url)) {
+//                        mDownloadManager.deleteTask(url);
+//                    }
+//                    break;
+//                case DownloadManagerIntent.Types.PAUSE:
+//                    url = intent.getStringExtra(DownloadManagerIntent.URL);
+//                    if (!TextUtils.isEmpty(url)) {
+//                        mDownloadManager.pauseTask(url);
+//                    }
+//                    break;
+//                case DownloadManagerIntent.Types.STOP:
+//                    mDownloadManager.close();
+//                    stopSelf();
+//                    break;
+//
+//                default:
+//                    break;
+//            }
+//        }
+        return START_STICKY;
     }
 
-    private class DownloadServiceImpl extends IDownloadService.Stub {
-
-        @Override
-        public void startManage() throws RemoteException {
-
-            mDownloadManager.startManage();
-        }
-
-        @Override
-        public void addTask(String url) throws RemoteException {
-
-            mDownloadManager.addTask(url);
-        }
-
-        @Override
-        public void pauseTask(String url) throws RemoteException {
-
-        }
-
-        @Override
-        public void deleteTask(String url) throws RemoteException {
-
-        }
-
-        @Override
-        public void continueTask(String url) throws RemoteException {
-
-        }
-
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "onDestroy()");
     }
 
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
 }

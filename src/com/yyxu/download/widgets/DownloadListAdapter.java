@@ -11,7 +11,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 
 import com.yyxu.download.R;
-import com.yyxu.download.utils.MyIntents;
+import com.yyxu.download.utils.DownloadManagerIntent;
 
 public class DownloadListAdapter extends BaseAdapter {
 
@@ -95,29 +95,28 @@ public class DownloadListAdapter extends BaseAdapter {
 
         @Override
         public void onClick(View v) {
-            Intent downloadIntent = new Intent("com.yyxu.download.services.IDownloadService");
+            Intent downloadIntent = new Intent();
 
             if (v.getId() == R.id.btn_continue) {
                 // mDownloadManager.continueTask(mPosition);
-                downloadIntent.putExtra(MyIntents.TYPE,
-                        MyIntents.Types.CONTINUE);
-                downloadIntent.putExtra(MyIntents.URL, url);
+                downloadIntent.setAction(DownloadManagerIntent.Action.CONTINUE);
+                downloadIntent.putExtra(DownloadManagerIntent.URL, url);
                 mContext.startService(downloadIntent);
 
                 mViewHolder.continueButton.setVisibility(View.GONE);
                 mViewHolder.pauseButton.setVisibility(View.VISIBLE);
             } else if (v.getId() == R.id.btn_pause) {
                 // mDownloadManager.pauseTask(mPosition);
-                downloadIntent.putExtra(MyIntents.TYPE, MyIntents.Types.PAUSE);
-                downloadIntent.putExtra(MyIntents.URL, url);
+                downloadIntent.setAction(DownloadManagerIntent.Action.PAUSE);
+                downloadIntent.putExtra(DownloadManagerIntent.URL, url);
                 mContext.startService(downloadIntent);
 
                 mViewHolder.continueButton.setVisibility(View.VISIBLE);
                 mViewHolder.pauseButton.setVisibility(View.GONE);
             } else if (v.getId() == R.id.btn_delete) {
                 // mDownloadManager.deleteTask(mPosition);
-                downloadIntent.putExtra(MyIntents.TYPE, MyIntents.Types.DELETE);
-                downloadIntent.putExtra(MyIntents.URL, url);
+                downloadIntent.setAction(DownloadManagerIntent.Action.DELETE);
+                downloadIntent.putExtra(DownloadManagerIntent.URL, url);
                 mContext.startService(downloadIntent);
 
                 removeItem(url);

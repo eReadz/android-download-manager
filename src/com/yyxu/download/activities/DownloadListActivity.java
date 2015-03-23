@@ -140,6 +140,7 @@ public class DownloadListActivity extends Activity {
         filter.addAction(DownloadManagerIntent.Action.DOWNLOAD_COMPLETED);
         filter.addAction(DownloadManagerIntent.Action.ERROR);
         filter.addDataScheme("http");
+        filter.addDataScheme("https");
         registerReceiver(mReceiver, filter);
 
     }

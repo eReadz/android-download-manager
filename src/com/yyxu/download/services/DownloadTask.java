@@ -10,10 +10,14 @@ import com.yyxu.download.utils.StorageUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.ConnectTimeoutException;
+import org.spongycastle.crypto.PBEParametersGenerator;
+import org.spongycastle.crypto.generators.PKCS5S2ParametersGenerator;
+import org.spongycastle.crypto.params.KeyParameter;
 
 import android.accounts.NetworkErrorException;
 import android.content.Context;
 import android.os.AsyncTask;
+import android.provider.Settings;
 import android.util.Log;
 
 import java.io.BufferedInputStream;
@@ -24,6 +28,17 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 public class DownloadTask extends AsyncTask<Void, Integer, Long> {
 
@@ -33,6 +48,9 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     private static final String TAG = "DownloadTask";
     private static final boolean DEBUG = true;
     private static final String TEMP_SUFFIX = ".download";
+
+    byte[] salt = { (byte) 0xA9, (byte) 0x9B, (byte) 0xC8, (byte) 0x32,
+            (byte) 0x56, (byte) 0x35, (byte) 0xE3, (byte) 0x03 };
 
     private URL URL;
     private File file;
@@ -142,14 +160,12 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
         long result = -1;
         try {
             result = download();
-        } catch (NetworkErrorException e) {
+        } catch (NetworkErrorException | IOException | FileAlreadyExistException
+                | NoMemoryException | NoSuchAlgorithmException | NoSuchPaddingException
+                | InvalidKeyException | InvalidAlgorithmParameterException
+                | IllegalBlockSizeException | BadPaddingException e) {
             error = e;
-        } catch (FileAlreadyExistException e) {
-            error = e;
-        } catch (NoMemoryException e) {
-            error = e;
-        } catch (IOException e) {
-            error = e;
+            Log.e(TAG, e.getMessage(), e);
         } finally {
             if (client != null) {
                 client.close();
@@ -210,7 +226,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     private HttpResponse response;
 
     private long download() throws NetworkErrorException, IOException, FileAlreadyExistException,
-            NoMemoryException {
+            NoMemoryException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException {
 
         if (DEBUG) {
             Log.v(TAG, "totalSize: " + totalSize);
@@ -286,7 +302,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     }
 
     public int copy(InputStream input, RandomAccessFile out) throws IOException,
-            NetworkErrorException {
+            NetworkErrorException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException {
 
         if (input == null || out == null) {
             return -1;
@@ -294,25 +310,42 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
 
         byte[] buffer = new byte[BUFFER_SIZE];
 
+
+        //TODO: Get username
+        byte[] key = generateKey(file.getName(), "ramone@ereadz.com");
+        StringBuilder sb = new StringBuilder();
+        for (byte b : key) {
+            sb.append(String.format("%02X ", b));
+        }
+        Log.d(TAG, "key: " + sb.toString());
+        Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
+//        Cipher c = Cipher.getInstance("AES/ECB/PKCS5Padding");
+        SecretKeySpec k = new SecretKeySpec(key, "AES");
+        byte[] iv = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        IvParameterSpec ivspec = new IvParameterSpec(iv);
+        c.init(Cipher.ENCRYPT_MODE, k, ivspec);
+
         BufferedInputStream in = new BufferedInputStream(input, BUFFER_SIZE);
         if (DEBUG) {
             Log.v(TAG, "length" + out.length());
         }
 
-        int count = 0, n = 0;
+        int count = 0, bytesRead = 0;
         long errorBlockTimePreviousTime = -1, expireTime = 0;
 
         try {
 
             out.seek(out.length());
-
+            byte[] output;
             while (!interrupt) {
-                n = in.read(buffer, 0, BUFFER_SIZE);
-                if (n == -1) {
+                bytesRead = in.read(buffer, 0, BUFFER_SIZE);
+                if (bytesRead == -1) {
                     break;
                 }
-                out.write(buffer, 0, n);
-                count += n;
+                output = c.update(buffer, 0, bytesRead);
+                out.write(output);
+//                out.write(buffer, 0, bytesRead);
+                count += bytesRead;
 
                 /*
                  * check network
@@ -335,6 +368,9 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
                     errorBlockTimePreviousTime = -1;
                 }
             }
+            output = c.doFinal();
+            out.seek(out.length());
+            out.write(output);
         } finally {
             client.close(); // must close client first
             client = null;
@@ -344,6 +380,21 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
         }
         return count;
 
+    }
+
+    public String getUniqueId(String username) {
+        return Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID)  + "-" + username.toLowerCase();
+    }
+
+    public byte[] generateKey(String uuid, String username) {
+        StringBuilder p = new StringBuilder();
+        p.append("doubleeye").append(getUniqueId(username)).append(uuid);
+
+        PBEParametersGenerator generator = new PKCS5S2ParametersGenerator();
+        generator.init(PBEParametersGenerator.PKCS5PasswordToUTF8Bytes(p.toString().toCharArray()), salt,1024);
+        KeyParameter params = (KeyParameter)generator.generateDerivedParameters(128);
+
+        return params.getKey();
     }
 
 }

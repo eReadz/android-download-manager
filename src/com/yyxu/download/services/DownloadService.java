@@ -25,37 +25,39 @@ public class DownloadService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
 
-        Log.d(TAG, "onStartCommand(): " + intent.getAction());
-        String url;
-        if (DownloadManagerIntent.Action.START.equalsIgnoreCase(intent.getAction())) {
-            if (!mDownloadManager.isRunning()) {
-                mDownloadManager.startManage();
-            } else {
-                mDownloadManager.rebroadcastAddAllTask();
+        if (intent != null) {
+            Log.d(TAG, "onStartCommand(): " + intent.getAction());
+            String url;
+            if (DownloadManagerIntent.Action.START.equalsIgnoreCase(intent.getAction())) {
+                if (!mDownloadManager.isRunning()) {
+                    mDownloadManager.startManage();
+                } else {
+                    mDownloadManager.rebroadcastAddAllTask();
+                }
+            } else if (DownloadManagerIntent.Action.ADD.equalsIgnoreCase(intent.getAction())) {
+                url = intent.getData().toString();
+                if (!TextUtils.isEmpty(url) && !mDownloadManager.hasTask(url)) {
+                    mDownloadManager.addTask(url);
+                }
+            } else if (DownloadManagerIntent.Action.CONTINUE.equalsIgnoreCase(intent.getAction())) {
+                url = intent.getData().toString();
+                if (!TextUtils.isEmpty(url)) {
+                    mDownloadManager.continueTask(url);
+                }
+            } else if (DownloadManagerIntent.Action.DELETE.equalsIgnoreCase(intent.getAction())) {
+                url = intent.getData().toString();
+                if (!TextUtils.isEmpty(url)) {
+                    mDownloadManager.deleteTask(url);
+                }
+            } else if (DownloadManagerIntent.Action.PAUSE.equalsIgnoreCase(intent.getAction())) {
+                url = intent.getData().toString();
+                if (!TextUtils.isEmpty(url)) {
+                    mDownloadManager.pauseTask(url);
+                }
+            } else if (DownloadManagerIntent.Action.STOP.equalsIgnoreCase(intent.getAction())) {
+                mDownloadManager.close();
+                stopSelf();
             }
-        } else if (DownloadManagerIntent.Action.ADD.equalsIgnoreCase(intent.getAction())) {
-            url = intent.getData().toString();
-            if (!TextUtils.isEmpty(url) && !mDownloadManager.hasTask(url)) {
-                mDownloadManager.addTask(url);
-            }
-        } else if (DownloadManagerIntent.Action.CONTINUE.equalsIgnoreCase(intent.getAction())) {
-            url = intent.getData().toString();
-            if (!TextUtils.isEmpty(url)) {
-                mDownloadManager.continueTask(url);
-            }
-        } else if (DownloadManagerIntent.Action.DELETE.equalsIgnoreCase(intent.getAction())) {
-            url = intent.getData().toString();
-            if (!TextUtils.isEmpty(url)) {
-                mDownloadManager.deleteTask(url);
-            }
-        } else if (DownloadManagerIntent.Action.PAUSE.equalsIgnoreCase(intent.getAction())) {
-            url = intent.getData().toString();
-            if (!TextUtils.isEmpty(url)) {
-                mDownloadManager.pauseTask(url);
-            }
-        } else if (DownloadManagerIntent.Action.STOP.equalsIgnoreCase(intent.getAction())) {
-            mDownloadManager.close();
-            stopSelf();
         }
 //        if (intent.getAction().equals("com.yyxu.download.services.IDownloadService")) {
 //            int type = intent.getIntExtra(DownloadManagerIntent.TYPE, -1);

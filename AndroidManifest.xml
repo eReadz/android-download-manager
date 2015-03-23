@@ -24,6 +24,7 @@
                 <action android:name="com.ereadz.downloadmanager.ACTION_CONTINUE" />
                 <action android:name="com.ereadz.downloadmanager.ACTION_DELETE" />
                 <data android:scheme="http"/>
+                <data android:scheme="https"/>
             </intent-filter>
             <intent-filter >
                 <action android:name="com.ereadz.downloadmanager.ACTION_START" />

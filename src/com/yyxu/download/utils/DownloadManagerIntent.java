@@ -4,7 +4,6 @@ public class DownloadManagerIntent {
 
 	public static final String PROCESS_SPEED = "process_speed";
 	public static final String PROCESS_PROGRESS = "process_progress";
-	public static final String URL = "url";
 	public static final String ERROR_CODE = "error_code";
 	public static final String ERROR_INFO = "error_info";
 	public static final String IS_PAUSED = "is_paused";

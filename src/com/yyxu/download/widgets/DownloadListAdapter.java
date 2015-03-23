@@ -5,6 +5,7 @@ import java.util.HashMap;
 
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -100,7 +101,7 @@ public class DownloadListAdapter extends BaseAdapter {
             if (v.getId() == R.id.btn_continue) {
                 // mDownloadManager.continueTask(mPosition);
                 downloadIntent.setAction(DownloadManagerIntent.Action.CONTINUE);
-                downloadIntent.putExtra(DownloadManagerIntent.URL, url);
+                downloadIntent.setData(Uri.parse(url));
                 mContext.startService(downloadIntent);
 
                 mViewHolder.continueButton.setVisibility(View.GONE);
@@ -108,7 +109,7 @@ public class DownloadListAdapter extends BaseAdapter {
             } else if (v.getId() == R.id.btn_pause) {
                 // mDownloadManager.pauseTask(mPosition);
                 downloadIntent.setAction(DownloadManagerIntent.Action.PAUSE);
-                downloadIntent.putExtra(DownloadManagerIntent.URL, url);
+                downloadIntent.setData(Uri.parse(url));
                 mContext.startService(downloadIntent);
 
                 mViewHolder.continueButton.setVisibility(View.VISIBLE);
@@ -116,7 +117,7 @@ public class DownloadListAdapter extends BaseAdapter {
             } else if (v.getId() == R.id.btn_delete) {
                 // mDownloadManager.deleteTask(mPosition);
                 downloadIntent.setAction(DownloadManagerIntent.Action.DELETE);
-                downloadIntent.putExtra(DownloadManagerIntent.URL, url);
+                downloadIntent.setData(Uri.parse(url));
                 mContext.startService(downloadIntent);
 
                 removeItem(url);

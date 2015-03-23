@@ -16,6 +16,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -77,7 +78,7 @@ public class DownloadListActivity extends Activity {
 
                 // downloadManager.addTask(Utils.url[urlIndex]);
                 Intent downloadIntent = new Intent(DownloadManagerIntent.Action.ADD);
-                downloadIntent.putExtra(DownloadManagerIntent.URL, Utils.url[urlIndex]);
+                downloadIntent.setData(Uri.parse(Utils.url[urlIndex]));
                 startService(downloadIntent);
 
                 urlIndex++;
@@ -138,7 +139,7 @@ public class DownloadListActivity extends Activity {
         filter.addAction(DownloadManagerIntent.Action.PROGRESS_UPDATED);
         filter.addAction(DownloadManagerIntent.Action.DOWNLOAD_COMPLETED);
         filter.addAction(DownloadManagerIntent.Action.ERROR);
-
+        filter.addDataScheme("http");
         registerReceiver(mReceiver, filter);
 
     }
@@ -162,28 +163,28 @@ public class DownloadListActivity extends Activity {
 
         private void handleIntent(Intent intent) {
 
-            if (intent != null) {
+            if (intent != null && intent.getData() != null) {
                 String url;
 
                 if (DownloadManagerIntent.Action.ADD_COMPLETED.equalsIgnoreCase(intent.getAction())) {
-                    url = intent.getStringExtra(DownloadManagerIntent.URL);
+                    url = intent.getData().toString();
                     boolean isPaused = intent.getBooleanExtra(DownloadManagerIntent.IS_PAUSED, false);
                     if (!TextUtils.isEmpty(url)) {
                         downloadListAdapter.addItem(url, isPaused);
                     }
                 } else if (DownloadManagerIntent.Action.PROGRESS_UPDATED.equalsIgnoreCase(intent.getAction())) {
-                    url = intent.getStringExtra(DownloadManagerIntent.URL);
+                    url = intent.getData().toString();
                     View taskListItem = downloadList.findViewWithTag(url);
                     ViewHolder viewHolder = new ViewHolder(taskListItem);
                     viewHolder.setData(url, intent.getStringExtra(DownloadManagerIntent.PROCESS_SPEED),
                             intent.getStringExtra(DownloadManagerIntent.PROCESS_PROGRESS));
                 } else if (DownloadManagerIntent.Action.DOWNLOAD_COMPLETED.equalsIgnoreCase(intent.getAction())) {
-                    url = intent.getStringExtra(DownloadManagerIntent.URL);
+                    url = intent.getData().toString();
                     if (!TextUtils.isEmpty(url)) {
                         downloadListAdapter.removeItem(url);
                     }
                 } else if (DownloadManagerIntent.Action.ERROR.equalsIgnoreCase(intent.getAction())) {
-                    url = intent.getStringExtra(DownloadManagerIntent.URL);
+                    url = intent.getData().toString();
                 }
             }
 //            if (intent != null

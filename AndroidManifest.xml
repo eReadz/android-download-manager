@@ -17,14 +17,17 @@
 
         <service android:name=".services.TrafficCounterService" >
         </service>
-        <service android:name=".services.DownloadService" >
+        <service android:name=".services.DownloadService">
             <intent-filter >
-                <action android:name="com.ereadz.downloadmanager.ACTION_START" />
-                <action android:name="com.ereadz.downloadmanager.ACTION_STOP" />
                 <action android:name="com.ereadz.downloadmanager.ACTION_ADD" />
                 <action android:name="com.ereadz.downloadmanager.ACTION_PAUSE" />
                 <action android:name="com.ereadz.downloadmanager.ACTION_CONTINUE" />
                 <action android:name="com.ereadz.downloadmanager.ACTION_DELETE" />
+                <data android:scheme="http"/>
+            </intent-filter>
+            <intent-filter >
+                <action android:name="com.ereadz.downloadmanager.ACTION_START" />
+                <action android:name="com.ereadz.downloadmanager.ACTION_STOP" />
             </intent-filter>
         </service>
     </application>

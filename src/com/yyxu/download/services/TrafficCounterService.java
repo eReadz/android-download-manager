@@ -20,7 +20,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class TrafficCounterService extends Service {
-
+    private static final String TAG = "TrafficCounterService";
     private static final int SAMPLING_RATE = 1000;
 
     private Timer timer;
@@ -39,7 +39,7 @@ public class TrafficCounterService extends Service {
     @Override
     public void onCreate() {
 
-        Log.e("Download", "oncreate");
+        Log.d(TAG, "onCreate()");
 
         connectivityManager = (ConnectivityManager) this
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -69,7 +69,7 @@ public class TrafficCounterService extends Service {
         if (timer != null && timerTask != null) {
             preTx = curTx = TrafficStats.getUidTxBytes(mUid);
             preRx = curRx = TrafficStats.getUidRxBytes(mUid);
-            Log.e("yyxu", "cur" + curRx);
+            Log.d(TAG, "cur" + curRx);
             timer.schedule(timerTask, 0, SAMPLING_RATE);
 
             // check the network operator is changed or not
@@ -88,7 +88,7 @@ public class TrafficCounterService extends Service {
     @Override
     public void onStart(Intent intent, int startId) {
 
-        Log.e("Download", "onstart");
+        Log.e(TAG, "onStart()");
         // do nothing to avoid multi-start
     }
 

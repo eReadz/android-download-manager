@@ -8,6 +8,8 @@ import com.yyxu.download.utils.StorageUtils;
 
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
+import android.util.Log;
 import android.widget.Toast;
 
 import java.io.File;
@@ -18,7 +20,7 @@ import java.util.List;
 import java.util.Queue;
 
 public class DownloadManager extends Thread {
-
+    private static final String TAG = "DownloadManager";
     private static final int MAX_TASK_COUNT = 100;
     private static final int MAX_DOWNLOAD_THREAD_COUNT = 3;
 
@@ -71,17 +73,17 @@ public class DownloadManager extends Thread {
     public void addTask(String url) {
 
         if (!StorageUtils.isSDCardPresent()) {
-            Toast.makeText(mContext, "未发现SD卡", Toast.LENGTH_LONG).show();
+            Toast.makeText(mContext, "No SD Card", Toast.LENGTH_LONG).show();
             return;
         }
 
         if (!StorageUtils.isSdCardWrittenable()) {
-            Toast.makeText(mContext, "SD卡不能读写", Toast.LENGTH_LONG).show();
+            Toast.makeText(mContext, "SD Card Not Writable", Toast.LENGTH_LONG).show();
             return;
         }
 
         if (getTotalTaskCount() >= MAX_TASK_COUNT) {
-            Toast.makeText(mContext, "任务列表已满", Toast.LENGTH_LONG).show();
+            Toast.makeText(mContext, "Exceeded Max Task Count", Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -105,19 +107,18 @@ public class DownloadManager extends Thread {
     }
 
     private void broadcastAddTask(String url) {
-
         broadcastAddTask(url, false);
     }
 
     private void broadcastAddTask(String url, boolean isInterrupt) {
-
+        Log.d(TAG, "broadtCastAddTask: " + url);
         Intent nofityIntent = new Intent(DownloadManagerIntent.Action.ADD_COMPLETED);
-        nofityIntent.putExtra(DownloadManagerIntent.URL, url);
+        nofityIntent.setData(Uri.parse(url));
         nofityIntent.putExtra(DownloadManagerIntent.IS_PAUSED, isInterrupt);
         mContext.sendBroadcast(nofityIntent);
     }
 
-    public void reBroadcastAddAllTask() {
+    public void rebroadcastAddAllTask() {
 
         DownloadTask task;
         for (int i = 0; i < mDownloadingTasks.size(); i++) {
@@ -293,7 +294,7 @@ public class DownloadManager extends Thread {
 
             // notify list changed
             Intent nofityIntent = new Intent(DownloadManagerIntent.Action.DOWNLOAD_COMPLETED);
-            nofityIntent.putExtra(DownloadManagerIntent.URL, task.getUrl());
+            nofityIntent.setData(Uri.parse(task.getUrl()));
             mContext.sendBroadcast(nofityIntent);
         }
     }
@@ -316,7 +317,7 @@ public class DownloadManager extends Thread {
                 updateIntent.putExtra(DownloadManagerIntent.PROCESS_SPEED, task.getDownloadSpeed() + "kbps | "
                         + task.getDownloadSize() + " / " + task.getTotalSize());
                 updateIntent.putExtra(DownloadManagerIntent.PROCESS_PROGRESS, task.getDownloadPercent() + "");
-                updateIntent.putExtra(DownloadManagerIntent.URL, task.getUrl());
+                updateIntent.setData(Uri.parse(task.getUrl()));
                 mContext.sendBroadcast(updateIntent);
             }
 

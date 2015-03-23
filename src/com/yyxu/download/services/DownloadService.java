@@ -6,7 +6,6 @@ import com.yyxu.download.utils.DownloadManagerIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import android.os.RemoteException;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -26,31 +25,31 @@ public class DownloadService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
 
-        Log.d(TAG, "onStartCommand()");
+        Log.d(TAG, "onStartCommand(): " + intent.getAction());
         String url;
         if (DownloadManagerIntent.Action.START.equalsIgnoreCase(intent.getAction())) {
             if (!mDownloadManager.isRunning()) {
                 mDownloadManager.startManage();
             } else {
-                mDownloadManager.reBroadcastAddAllTask();
+                mDownloadManager.rebroadcastAddAllTask();
             }
         } else if (DownloadManagerIntent.Action.ADD.equalsIgnoreCase(intent.getAction())) {
-            url = intent.getStringExtra(DownloadManagerIntent.URL);
+            url = intent.getData().toString();
             if (!TextUtils.isEmpty(url) && !mDownloadManager.hasTask(url)) {
                 mDownloadManager.addTask(url);
             }
         } else if (DownloadManagerIntent.Action.CONTINUE.equalsIgnoreCase(intent.getAction())) {
-            url = intent.getStringExtra(DownloadManagerIntent.URL);
+            url = intent.getData().toString();
             if (!TextUtils.isEmpty(url)) {
                 mDownloadManager.continueTask(url);
             }
         } else if (DownloadManagerIntent.Action.DELETE.equalsIgnoreCase(intent.getAction())) {
-            url = intent.getStringExtra(DownloadManagerIntent.URL);
+            url = intent.getData().toString();
             if (!TextUtils.isEmpty(url)) {
                 mDownloadManager.deleteTask(url);
             }
         } else if (DownloadManagerIntent.Action.PAUSE.equalsIgnoreCase(intent.getAction())) {
-            url = intent.getStringExtra(DownloadManagerIntent.URL);
+            url = intent.getData().toString();
             if (!TextUtils.isEmpty(url)) {
                 mDownloadManager.pauseTask(url);
             }
@@ -67,7 +66,7 @@ public class DownloadService extends Service {
 //                    if (!mDownloadManager.isRunning()) {
 //                        mDownloadManager.startManage();
 //                    } else {
-//                        mDownloadManager.reBroadcastAddAllTask();
+//                        mDownloadManager.rebroadcastAddAllTask();
 //                    }
 //                    break;
 //                case DownloadManagerIntent.Types.ADD:

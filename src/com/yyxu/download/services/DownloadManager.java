@@ -70,28 +70,31 @@ public class DownloadManager extends Thread {
         }
     }
 
-    public void addTask(long downloadId, String url) {
-        if (!StorageUtils.isSDCardPresent()) {
-            Toast.makeText(mContext, "No SD Card", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        if (!StorageUtils.isSdCardWrittenable()) {
-            Toast.makeText(mContext, "SD Card Not Writable", Toast.LENGTH_LONG).show();
-            return;
-        }
+    public long addTask(long downloadId, String url) {
+//        if (!StorageUtils.isSDCardPresent()) {
+//            Toast.makeText(mContext, "No SD Card", Toast.LENGTH_LONG).show();
+//            return -1;
+//        }
+//
+//        if (!StorageUtils.isSdCardWrittenable()) {
+//            Toast.makeText(mContext, "SD Card Not Writable", Toast.LENGTH_LONG).show();
+//            return -1;
+//        }
 
         if (getTotalTaskCount() >= MAX_TASK_COUNT) {
             Toast.makeText(mContext, "Exceeded Max Task Count", Toast.LENGTH_LONG).show();
-            return;
+            return -1;
         }
 
         try {
-            addTask(newDownloadTask(downloadId, url));
+            DownloadTask newDownloadTask = newDownloadTask(downloadId, url);
+            addTask(newDownloadTask);
+            return newDownloadTask.getDownloadId();
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
 
+        return -1;
     }
 
     private void addTask(DownloadTask task) {
@@ -149,8 +152,18 @@ public class DownloadManager extends Thread {
         return false;
     }
 
-    public DownloadTask getTask(int position) {
+    public boolean isDownloadingTask(long downloadId) {
+        DownloadTask task;
+        for (int i = 0; i < mDownloadingTasks.size(); i++) {
+            task = mDownloadingTasks.get(i);
+            if (task.getDownloadId() == downloadId) {
+                return true;
+            }
+        }
+        return false;
+    }
 
+    public DownloadTask getTask(int position) {
         if (position >= mDownloadingTasks.size()) {
             return mTaskQueue.get(position - mDownloadingTasks.size());
         } else {

@@ -5,6 +5,7 @@ import com.yyxu.download.utils.DownloadManagerIntent;
 
 import android.app.Service;
 import android.content.Intent;
+import android.os.Binder;
 import android.os.IBinder;
 import android.text.TextUtils;
 import android.util.Log;
@@ -13,6 +14,19 @@ public class DownloadService extends Service {
     public static final String TAG = "DownloadService";
 
     private DownloadManager mDownloadManager;
+
+    private final IBinder downloadServiceBinder = new DownloadServiceBinder();
+
+    public class DownloadServiceBinder extends Binder {
+        public DownloadService getService() {
+            return DownloadService.this;
+        }
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return downloadServiceBinder;
+    }
 
     @Override
     public void onCreate() {
@@ -38,7 +52,7 @@ public class DownloadService extends Service {
                 url = intent.getData().toString();
                 if (!TextUtils.isEmpty(url) && !mDownloadManager.hasTask(url)) {
                     // A negative downloadId will result in an new one being created
-                    mDownloadManager.addTask(-1, url);
+                    addTask(url);
                 }
             } else if (DownloadManagerIntent.Action.CONTINUE.equalsIgnoreCase(intent.getAction())) {
                 url = intent.getData().toString();
@@ -69,8 +83,11 @@ public class DownloadService extends Service {
         Log.d(TAG, "onDestroy()");
     }
 
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
+    public boolean isDownloadingTask(long downloadId) {
+        return mDownloadManager.isDownloadingTask(downloadId);
+    }
+
+    public long addTask(String url) {
+        return mDownloadManager.addTask(-1, url);
     }
 }

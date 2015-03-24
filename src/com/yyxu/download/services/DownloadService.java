@@ -37,7 +37,8 @@ public class DownloadService extends Service {
             } else if (DownloadManagerIntent.Action.ADD.equalsIgnoreCase(intent.getAction())) {
                 url = intent.getData().toString();
                 if (!TextUtils.isEmpty(url) && !mDownloadManager.hasTask(url)) {
-                    mDownloadManager.addTask(url);
+                    // A negative downloadId will result in an new one being created
+                    mDownloadManager.addTask(-1, url);
                 }
             } else if (DownloadManagerIntent.Action.CONTINUE.equalsIgnoreCase(intent.getAction())) {
                 url = intent.getData().toString();
@@ -59,51 +60,6 @@ public class DownloadService extends Service {
                 stopSelf();
             }
         }
-//        if (intent.getAction().equals("com.yyxu.download.services.IDownloadService")) {
-//            int type = intent.getIntExtra(DownloadManagerIntent.TYPE, -1);
-//            String url;
-//
-//            switch (type) {
-//                case DownloadManagerIntent.Types.START:
-//                    if (!mDownloadManager.isRunning()) {
-//                        mDownloadManager.startManage();
-//                    } else {
-//                        mDownloadManager.rebroadcastAddAllTask();
-//                    }
-//                    break;
-//                case DownloadManagerIntent.Types.ADD:
-//                    url = intent.getStringExtra(DownloadManagerIntent.URL);
-//                    if (!TextUtils.isEmpty(url) && !mDownloadManager.hasTask(url)) {
-//                        mDownloadManager.addTask(url);
-//                    }
-//                    break;
-//                case DownloadManagerIntent.Types.CONTINUE:
-//                    url = intent.getStringExtra(DownloadManagerIntent.URL);
-//                    if (!TextUtils.isEmpty(url)) {
-//                        mDownloadManager.continueTask(url);
-//                    }
-//                    break;
-//                case DownloadManagerIntent.Types.DELETE:
-//                    url = intent.getStringExtra(DownloadManagerIntent.URL);
-//                    if (!TextUtils.isEmpty(url)) {
-//                        mDownloadManager.deleteTask(url);
-//                    }
-//                    break;
-//                case DownloadManagerIntent.Types.PAUSE:
-//                    url = intent.getStringExtra(DownloadManagerIntent.URL);
-//                    if (!TextUtils.isEmpty(url)) {
-//                        mDownloadManager.pauseTask(url);
-//                    }
-//                    break;
-//                case DownloadManagerIntent.Types.STOP:
-//                    mDownloadManager.close();
-//                    stopSelf();
-//                    break;
-//
-//                default:
-//                    break;
-//            }
-//        }
         return START_STICKY;
     }
 

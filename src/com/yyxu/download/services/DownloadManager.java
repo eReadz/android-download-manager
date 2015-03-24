@@ -1,7 +1,7 @@
 
 package com.yyxu.download.services;
 
-import com.yyxu.download.utils.ConfigUtils;
+import com.yyxu.download.utils.DownloadManagerStorage;
 import com.yyxu.download.utils.DownloadManagerIntent;
 import com.yyxu.download.utils.NetworkUtils;
 import com.yyxu.download.utils.StorageUtils;
@@ -15,6 +15,8 @@ import android.widget.Toast;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -32,36 +34,34 @@ public class DownloadManager extends Thread {
 
     private Boolean isRunning = false;
 
-    public DownloadManager(Context context) {
+    private DownloadManagerStorage mDownloadManagerStorage;
 
+    public DownloadManager(Context context) {
         mContext = context;
         mTaskQueue = new TaskQueue();
         mDownloadingTasks = new ArrayList<DownloadTask>();
         mPausingTasks = new ArrayList<DownloadTask>();
+        mDownloadManagerStorage = new DownloadManagerStorage(context);
     }
 
     public void startManage() {
-
         isRunning = true;
         this.start();
         checkUncompleteTasks();
     }
 
     public void close() {
-
         isRunning = false;
         pauseAllTask();
         this.stop();
     }
 
     public boolean isRunning() {
-
         return isRunning;
     }
 
     @Override
     public void run() {
-
         super.run();
         while (isRunning) {
             DownloadTask task = mTaskQueue.poll();
@@ -70,8 +70,7 @@ public class DownloadManager extends Thread {
         }
     }
 
-    public void addTask(String url) {
-
+    public void addTask(long downloadId, String url) {
         if (!StorageUtils.isSDCardPresent()) {
             Toast.makeText(mContext, "No SD Card", Toast.LENGTH_LONG).show();
             return;
@@ -88,7 +87,7 @@ public class DownloadManager extends Thread {
         }
 
         try {
-            addTask(newDownloadTask(url));
+            addTask(newDownloadTask(downloadId, url));
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
@@ -180,12 +179,9 @@ public class DownloadManager extends Thread {
     }
 
     public void checkUncompleteTasks() {
-
-        List<String> urlList = ConfigUtils.getURLArray(mContext);
-        if (urlList.size() >= 0) {
-            for (int i = 0; i < urlList.size(); i++) {
-                addTask(urlList.get(i));
-            }
+        HashMap<Long, String> downloadInformation = mDownloadManagerStorage.getDownloadInformation();
+        for (Long downloadId : downloadInformation.keySet()) {
+            addTask(downloadId, downloadInformation.get(downloadId));
         }
     }
 
@@ -267,9 +263,10 @@ public class DownloadManager extends Thread {
 
             // move to pausing list
             String url = task.getUrl();
+            long downloadId = task.getDownloadId();
             try {
                 mDownloadingTasks.remove(task);
-                task = newDownloadTask(url);
+                task = newDownloadTask(downloadId, url);
                 mPausingTasks.add(task);
             } catch (MalformedURLException e) {
                 e.printStackTrace();
@@ -289,7 +286,7 @@ public class DownloadManager extends Thread {
     public synchronized void completeTask(DownloadTask task) {
 
         if (mDownloadingTasks.contains(task)) {
-            ConfigUtils.clearURL(mContext, mDownloadingTasks.indexOf(task));
+            mDownloadManagerStorage.clearDownloadTask(task.getDownloadId());
             mDownloadingTasks.remove(task);
 
             // notify list changed
@@ -301,12 +298,13 @@ public class DownloadManager extends Thread {
 
     /**
      * Create a new download task with default config
-     * 
+     *
+     * @param downloadId
      * @param url
      * @return
      * @throws MalformedURLException
      */
-    private DownloadTask newDownloadTask(String url) throws MalformedURLException {
+    private DownloadTask newDownloadTask(long downloadId, String url) throws MalformedURLException {
 
         DownloadTaskListener taskListener = new DownloadTaskListener() {
 
@@ -323,13 +321,11 @@ public class DownloadManager extends Thread {
 
             @Override
             public void preDownload(DownloadTask task) {
-
-                ConfigUtils.storeURL(mContext, mDownloadingTasks.indexOf(task), task.getUrl());
+                mDownloadManagerStorage.storeDownloadTask(task.getDownloadId(), task.getUrl());
             }
 
             @Override
             public void finishDownload(DownloadTask task) {
-
                 completeTask(task);
             }
 
@@ -357,7 +353,11 @@ public class DownloadManager extends Thread {
                 // }
             }
         };
-        return new DownloadTask(mContext, url, StorageUtils.FILE_ROOT, taskListener);
+        if (downloadId >= 0) {
+            return new DownloadTask(mContext, downloadId, url, StorageUtils.FILE_ROOT, taskListener);
+        } else {
+            return new DownloadTask(mContext, url, StorageUtils.FILE_ROOT, taskListener);
+        }
     }
 
     /**

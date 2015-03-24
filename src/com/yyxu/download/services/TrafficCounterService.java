@@ -1,7 +1,7 @@
 
 package com.yyxu.download.services;
 
-import com.yyxu.download.utils.ConfigUtils;
+import com.yyxu.download.utils.DownloadManagerStorage;
 
 import android.app.Service;
 import android.content.Context;
@@ -28,6 +28,7 @@ public class TrafficCounterService extends Service {
 
     private ConnectivityManager connectivityManager;
     private TelephonyManager telephonyManager;
+    private DownloadManagerStorage downloadManagerStorage;
     private int mUid;
 
     @Override
@@ -41,6 +42,7 @@ public class TrafficCounterService extends Service {
 
         Log.d(TAG, "onCreate()");
 
+        downloadManagerStorage = new DownloadManagerStorage(this);
         connectivityManager = (ConnectivityManager) this
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
 
@@ -74,11 +76,11 @@ public class TrafficCounterService extends Service {
 
             // check the network operator is changed or not
             operatorName = telephonyManager.getNetworkOperatorName();
-            if (!ConfigUtils.getString(this, ConfigUtils.KEY_Network_Operator_Name).equals(
+            if (!downloadManagerStorage.getString(DownloadManagerStorage.KEY_Network_Operator_Name).equals(
                     operatorName)) {
-                ConfigUtils.setString(this, ConfigUtils.KEY_Network_Operator_Name, operatorName);
-                ConfigUtils.setLong(this, ConfigUtils.KEY_RX_MOBILE, 0L);
-                ConfigUtils.setLong(this, ConfigUtils.KEY_TX_MOBILE, 0L);
+                downloadManagerStorage.setString(DownloadManagerStorage.KEY_Network_Operator_Name, operatorName);
+                downloadManagerStorage.setLong(DownloadManagerStorage.KEY_RX_MOBILE, 0L);
+                downloadManagerStorage.setLong(DownloadManagerStorage.KEY_TX_MOBILE, 0L);
                 // TODO Network operator has changed
             }
         }
@@ -122,22 +124,22 @@ public class TrafficCounterService extends Service {
             if (networkInfo.getTypeName().equalsIgnoreCase("MOBILE")) {
 
                 if (curTx != -1) {
-                    ConfigUtils.addLong(this, ConfigUtils.KEY_TX_MOBILE, curTx - preTx);
+                    downloadManagerStorage.addLong(DownloadManagerStorage.KEY_TX_MOBILE, curTx - preTx);
                     preTx = curTx;
                 }
                 if (curRx != -1) {
-                    ConfigUtils.addLong(this, ConfigUtils.KEY_RX_MOBILE, curRx - preRx);
+                    downloadManagerStorage.addLong(DownloadManagerStorage.KEY_RX_MOBILE, curRx - preRx);
                     preRx = curRx;
                 }
 
             } else {
 
                 if (curTx != -1) {
-                    ConfigUtils.addLong(this, ConfigUtils.KEY_TX_WIFI, curTx - preTx);
+                    downloadManagerStorage.addLong(DownloadManagerStorage.KEY_TX_WIFI, curTx - preTx);
                     preTx = curTx;
                 }
                 if (curRx != -1) {
-                    ConfigUtils.addLong(this, ConfigUtils.KEY_RX_WIFI, curRx - preRx);
+                    downloadManagerStorage.addLong(DownloadManagerStorage.KEY_RX_WIFI, curRx - preRx);
                     preRx = curRx;
                 }
             }

@@ -31,7 +31,9 @@ import java.net.URL;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.UUID;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -52,6 +54,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     byte[] salt = { (byte) 0xA9, (byte) 0x9B, (byte) 0xC8, (byte) 0x32,
             (byte) 0x56, (byte) 0x35, (byte) 0xE3, (byte) 0x03 };
 
+    private long downloadId;
     private URL URL;
     private File file;
     private File tempFile;
@@ -75,13 +78,11 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
 
         public ProgressReportingRandomAccessFile(File file, String mode)
                 throws FileNotFoundException {
-
             super(file, mode);
         }
 
         @Override
         public void write(byte[] buffer, int offset, int count) throws IOException {
-
             super.write(buffer, offset, count);
             progress += count;
             publishProgress(progress);
@@ -89,14 +90,16 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     }
 
     public DownloadTask(Context context, String url, String path) throws MalformedURLException {
-
         this(context, url, path, null);
     }
 
-    public DownloadTask(Context context, String url, String path, DownloadTaskListener listener)
-            throws MalformedURLException {
+    public DownloadTask(Context context, String url, String path, DownloadTaskListener listener) throws MalformedURLException {
+        this(context, UUID.randomUUID().getMostSignificantBits(), url, path, listener);
+    }
 
+    public DownloadTask(Context context, long downloadId, String url, String path, DownloadTaskListener listener) throws MalformedURLException {
         super();
+        this.downloadId = downloadId;
         this.url = url;
         this.URL = new URL(url);
         this.listener = listener;
@@ -104,6 +107,10 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
         this.file = new File(path, fileName);
         this.tempFile = new File(path, fileName + TEMP_SUFFIX);
         this.context = context;
+    }
+
+    public long getDownloadId() {
+        return downloadId;
     }
 
     public String getUrl() {

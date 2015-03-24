@@ -311,8 +311,9 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
         byte[] buffer = new byte[BUFFER_SIZE];
 
 
-        //TODO: Get username
-        byte[] key = generateKey(file.getName(), "ramone@ereadz.com");
+        //TODO: Get username and publication ID
+        byte[] key = generateKey("ramone", "ramone@ereadz.com");
+//        byte[] key = generateKey(file.getName(), "ramone@ereadz.com");
         StringBuilder sb = new StringBuilder();
         for (byte b : key) {
             sb.append(String.format("%02X ", b));

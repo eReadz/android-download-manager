@@ -1,6 +1,7 @@
 
 package com.yyxu.download.services;
 
+import com.yyxu.download.model.DownloadInfo;
 import com.yyxu.download.utils.DownloadManagerIntent;
 
 import android.app.Service;
@@ -49,26 +50,30 @@ public class DownloadService extends Service {
                     mDownloadManager.rebroadcastAddAllTask();
                 }
             } else if (DownloadManagerIntent.Action.ADD.equalsIgnoreCase(intent.getAction())) {
-                url = intent.getData().toString();
-                if (!TextUtils.isEmpty(url) && !mDownloadManager.hasTask(url)) {
+                //TODO: Enable adding download tasks via intents
+//                url = intent.getData().toString();
+//                if (!TextUtils.isEmpty(url) && !mDownloadManager.hasTask(url)) {
                     // A negative downloadId will result in an new one being created
-                    addTask(url);
-                }
+//                    addTask(url);
+//                }
             } else if (DownloadManagerIntent.Action.CONTINUE.equalsIgnoreCase(intent.getAction())) {
-                url = intent.getData().toString();
-                if (!TextUtils.isEmpty(url)) {
-                    mDownloadManager.continueTask(url);
-                }
+                //TODO: Enable continue download tasks via intents
+//                url = intent.getData().toString();
+//                if (!TextUtils.isEmpty(url)) {
+//                    mDownloadManager.continueTask(url);
+//                }
             } else if (DownloadManagerIntent.Action.DELETE.equalsIgnoreCase(intent.getAction())) {
-                url = intent.getData().toString();
-                if (!TextUtils.isEmpty(url)) {
-                    mDownloadManager.deleteTask(url);
-                }
+                //TODO: Enable delete download tasks via intents
+//                url = intent.getData().toString();
+//                if (!TextUtils.isEmpty(url)) {
+//                    mDownloadManager.deleteTask(url);
+//                }
             } else if (DownloadManagerIntent.Action.PAUSE.equalsIgnoreCase(intent.getAction())) {
-                url = intent.getData().toString();
-                if (!TextUtils.isEmpty(url)) {
-                    mDownloadManager.pauseTask(url);
-                }
+                //TODO: Enable pause download tasks via intents
+//                url = intent.getData().toString();
+//                if (!TextUtils.isEmpty(url)) {
+//                    mDownloadManager.pauseTask(url);
+//                }
             } else if (DownloadManagerIntent.Action.STOP.equalsIgnoreCase(intent.getAction())) {
                 mDownloadManager.close();
                 stopSelf();
@@ -87,7 +92,7 @@ public class DownloadService extends Service {
         return mDownloadManager.isDownloadingTask(downloadId);
     }
 
-    public long addTask(String url) {
-        return mDownloadManager.addTask(-1, url);
+    public boolean addTask(DownloadInfo downloadInfo) {
+        return mDownloadManager.createAndAddDownloadTask(downloadInfo);
     }
 }

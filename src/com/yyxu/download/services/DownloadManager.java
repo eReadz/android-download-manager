@@ -1,10 +1,9 @@
 
 package com.yyxu.download.services;
 
+import com.yyxu.download.model.DownloadInfo;
 import com.yyxu.download.utils.DownloadManagerStorage;
 import com.yyxu.download.utils.DownloadManagerIntent;
-import com.yyxu.download.utils.NetworkUtils;
-import com.yyxu.download.utils.StorageUtils;
 
 import android.content.Context;
 import android.content.Intent;
@@ -16,7 +15,6 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -65,44 +63,90 @@ public class DownloadManager extends Thread {
         super.run();
         while (isRunning) {
             DownloadTask task = mTaskQueue.poll();
-            mDownloadingTasks.add(task);
-            task.execute();
+            if (task != null) {
+                Log.d(TAG, "Added task " + task.getDownloadId() + " to Download Queue");
+                mDownloadingTasks.add(task);
+                task.execute();
+            } else {
+                Log.d(TAG, "Download Task Queue Empty");
+            }
         }
     }
 
-    public long addTask(long downloadId, String url) {
-//        if (!StorageUtils.isSDCardPresent()) {
-//            Toast.makeText(mContext, "No SD Card", Toast.LENGTH_LONG).show();
-//            return -1;
-//        }
-//
-//        if (!StorageUtils.isSdCardWrittenable()) {
-//            Toast.makeText(mContext, "SD Card Not Writable", Toast.LENGTH_LONG).show();
-//            return -1;
-//        }
-
+    public boolean createAndAddDownloadTask(DownloadInfo downloadInfo) {
         if (getTotalTaskCount() >= MAX_TASK_COUNT) {
             Toast.makeText(mContext, "Exceeded Max Task Count", Toast.LENGTH_LONG).show();
-            return -1;
+            return false;
         }
 
         try {
-            DownloadTask newDownloadTask = newDownloadTask(downloadId, url);
-            addTask(newDownloadTask);
-            return newDownloadTask.getDownloadId();
+            DownloadTask newTask = createDownloadTask(downloadInfo);
+            addTaskToQueue(newTask);
+            return true;
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
-
-        return -1;
+        return false;
     }
 
-    private void addTask(DownloadTask task) {
+    private DownloadTask createDownloadTask(DownloadInfo downloadInfo) throws MalformedURLException {
+        DownloadTaskListener taskListener = new DownloadTaskListener() {
+
+            @Override
+            public void updateProcess(DownloadTask task) {
+
+                Intent updateIntent = new Intent(DownloadManagerIntent.Action.PROGRESS_UPDATED);
+                updateIntent.putExtra(DownloadManagerIntent.PROCESS_SPEED, task.getDownloadSpeed() + "kbps | "
+                        + task.getDownloadSize() + " / " + task.getTotalSize());
+                updateIntent.putExtra(DownloadManagerIntent.PROCESS_PROGRESS, task.getDownloadPercent() + "");
+                updateIntent.setData(Uri.parse(task.getUrl()));
+                mContext.sendBroadcast(updateIntent);
+            }
+
+            @Override
+            public void preDownload(DownloadTask task) {
+                mDownloadManagerStorage.storeDownloadTask(task.getDownloadId(), task.getDownloadInfo());
+            }
+
+            @Override
+            public void finishDownload(DownloadTask task) {
+                completeTask(task);
+            }
+
+            @Override
+            public void errorDownload(DownloadTask task, Throwable error) {
+
+                if (error != null) {
+                    Toast.makeText(mContext, "Error: " + error.getMessage(), Toast.LENGTH_LONG)
+                            .show();
+                }
+
+                // Intent errorIntent = new
+                // Intent("com.yyxu.download.activities.DownloadListActivity");
+                // errorIntent.putExtra(MyIntents.TYPE, MyIntents.Types.ERROR);
+                // errorIntent.putExtra(MyIntents.ERROR_CODE, error);
+                // errorIntent.putExtra(MyIntents.ERROR_INFO,
+                // DownloadTask.getErrorInfo(error));
+                // errorIntent.putExtra(MyIntents.URL, task.getUrl());
+                // mContext.sendBroadcast(errorIntent);
+                //
+                // if (error != DownloadTask.ERROR_UNKOWN_HOST
+                // && error != DownloadTask.ERROR_BLOCK_INTERNET
+                // && error != DownloadTask.ERROR_TIME_OUT) {
+                // completeTask(task);
+                // }
+            }
+        };
+        return new DownloadTask(mContext, downloadInfo, taskListener);
+    }
+
+    private void addTaskToQueue(DownloadTask task) {
 
         broadcastAddTask(task.getUrl());
 
         mTaskQueue.offer(task);
 
+        Log.d(TAG, "Added download: " + task.getDownloadId() + " to task queue");
         if (!this.isAlive()) {
             this.startManage();
         }
@@ -113,7 +157,7 @@ public class DownloadManager extends Thread {
     }
 
     private void broadcastAddTask(String url, boolean isInterrupt) {
-        Log.d(TAG, "broadtCastAddTask: " + url);
+        Log.d(TAG, "broadcastAddTask: " + url);
         Intent nofityIntent = new Intent(DownloadManagerIntent.Action.ADD_COMPLETED);
         nofityIntent.setData(Uri.parse(url));
         nofityIntent.putExtra(DownloadManagerIntent.IS_PAUSED, isInterrupt);
@@ -163,14 +207,6 @@ public class DownloadManager extends Thread {
         return false;
     }
 
-    public DownloadTask getTask(int position) {
-        if (position >= mDownloadingTasks.size()) {
-            return mTaskQueue.get(position - mDownloadingTasks.size());
-        } else {
-            return mDownloadingTasks.get(position);
-        }
-    }
-
     public int getQueueTaskCount() {
 
         return mTaskQueue.size();
@@ -187,25 +223,13 @@ public class DownloadManager extends Thread {
     }
 
     public int getTotalTaskCount() {
-
         return getQueueTaskCount() + getDownloadingTaskCount() + getPausingTaskCount();
     }
 
     public void checkUncompleteTasks() {
-        HashMap<Long, String> downloadInformation = mDownloadManagerStorage.getDownloadInformation();
+        HashMap<Long, DownloadInfo> downloadInformation = mDownloadManagerStorage.getDownloadInformationList();
         for (Long downloadId : downloadInformation.keySet()) {
-            addTask(downloadId, downloadInformation.get(downloadId));
-        }
-    }
-
-    public synchronized void pauseTask(String url) {
-
-        DownloadTask task;
-        for (int i = 0; i < mDownloadingTasks.size(); i++) {
-            task = mDownloadingTasks.get(i);
-            if (task != null && task.getUrl().equals(url)) {
-                pauseTask(task);
-            }
+            createAndAddDownloadTask(downloadInformation.get(downloadId));
         }
     }
 
@@ -227,78 +251,63 @@ public class DownloadManager extends Thread {
         }
     }
 
-    public synchronized void deleteTask(String url) {
-
-        DownloadTask task;
-        for (int i = 0; i < mDownloadingTasks.size(); i++) {
-            task = mDownloadingTasks.get(i);
-            if (task != null && task.getUrl().equals(url)) {
-                File file = new File(StorageUtils.FILE_ROOT
-                        + NetworkUtils.getFileNameFromUrl(task.getUrl()));
-                if (file.exists())
+    public synchronized void deleteTask(long downloadId) {
+        //Delete the task from all the queues/lists
+        for (DownloadTask downloadTask : mDownloadingTasks) {
+            if (downloadTask.getDownloadId() == downloadId) {
+                downloadTask.onCancelled();
+                File file = new File(downloadTask.getDownloadInfo().getPath());
+                if (file.exists()) {
                     file.delete();
-
-                task.onCancelled();
-                completeTask(task);
+                }
+                completeTask(downloadTask);
                 return;
             }
         }
-        for (int i = 0; i < mTaskQueue.size(); i++) {
-            task = mTaskQueue.get(i);
-            if (task != null && task.getUrl().equals(url)) {
-                mTaskQueue.remove(task);
+
+        for (DownloadTask downloadTask : mTaskQueue.getQueue()) {
+            if (downloadTask.getDownloadId() == downloadId) {
+                mTaskQueue.remove(downloadTask);
             }
         }
-        for (int i = 0; i < mPausingTasks.size(); i++) {
-            task = mPausingTasks.get(i);
-            if (task != null && task.getUrl().equals(url)) {
-                mPausingTasks.remove(task);
+
+        for (DownloadTask downloadTask : mPausingTasks) {
+            if (downloadTask.getDownloadId() == downloadId) {
+                mPausingTasks.remove(downloadTask);
             }
         }
     }
 
-    public synchronized void continueTask(String url) {
-
-        DownloadTask task;
-        for (int i = 0; i < mPausingTasks.size(); i++) {
-            task = mPausingTasks.get(i);
-            if (task != null && task.getUrl().equals(url)) {
-                continueTask(task);
+    public synchronized void pauseTask(long downloadId) {
+        for (DownloadTask downloadTaskToBePaused : mDownloadingTasks) {
+            if (downloadTaskToBePaused.getDownloadId() == downloadId) {
+                pauseTask(downloadTaskToBePaused);
             }
-
         }
     }
 
-    public synchronized void pauseTask(DownloadTask task) {
-
-        if (task != null) {
-            task.onCancelled();
-
+    public synchronized void pauseTask(DownloadTask downloadTaskToBePaused) {
+        if (mDownloadingTasks.contains(downloadTaskToBePaused)) {
+            downloadTaskToBePaused.onCancelled();
             // move to pausing list
-            String url = task.getUrl();
-            long downloadId = task.getDownloadId();
-            try {
-                mDownloadingTasks.remove(task);
-                task = newDownloadTask(downloadId, url);
-                mPausingTasks.add(task);
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            }
-
+            mDownloadingTasks.remove(downloadTaskToBePaused);
+            mPausingTasks.add(downloadTaskToBePaused);
         }
     }
 
-    public synchronized void continueTask(DownloadTask task) {
-
-        if (task != null) {
-            mPausingTasks.remove(task);
-            mTaskQueue.offer(task);
+    public synchronized void continueTask(long downloadId) {
+        for (DownloadTask task : mPausingTasks) {
+            if (task.getDownloadId() == downloadId) {
+                mPausingTasks.remove(task);
+                mTaskQueue.offer(task);
+            }
         }
     }
 
     public synchronized void completeTask(DownloadTask task) {
 
         if (mDownloadingTasks.contains(task)) {
+            Log.d(TAG, "DownloadTask " + task.getDownloadId() + " completed");
             mDownloadManagerStorage.clearDownloadTask(task.getDownloadId());
             mDownloadingTasks.remove(task);
 
@@ -306,70 +315,6 @@ public class DownloadManager extends Thread {
             Intent nofityIntent = new Intent(DownloadManagerIntent.Action.DOWNLOAD_COMPLETED);
             nofityIntent.setData(Uri.parse(task.getUrl()));
             mContext.sendBroadcast(nofityIntent);
-        }
-    }
-
-    /**
-     * Create a new download task with default config
-     *
-     * @param downloadId
-     * @param url
-     * @return
-     * @throws MalformedURLException
-     */
-    private DownloadTask newDownloadTask(long downloadId, String url) throws MalformedURLException {
-
-        DownloadTaskListener taskListener = new DownloadTaskListener() {
-
-            @Override
-            public void updateProcess(DownloadTask task) {
-
-                Intent updateIntent = new Intent(DownloadManagerIntent.Action.PROGRESS_UPDATED);
-                updateIntent.putExtra(DownloadManagerIntent.PROCESS_SPEED, task.getDownloadSpeed() + "kbps | "
-                        + task.getDownloadSize() + " / " + task.getTotalSize());
-                updateIntent.putExtra(DownloadManagerIntent.PROCESS_PROGRESS, task.getDownloadPercent() + "");
-                updateIntent.setData(Uri.parse(task.getUrl()));
-                mContext.sendBroadcast(updateIntent);
-            }
-
-            @Override
-            public void preDownload(DownloadTask task) {
-                mDownloadManagerStorage.storeDownloadTask(task.getDownloadId(), task.getUrl());
-            }
-
-            @Override
-            public void finishDownload(DownloadTask task) {
-                completeTask(task);
-            }
-
-            @Override
-            public void errorDownload(DownloadTask task, Throwable error) {
-
-                if (error != null) {
-                    Toast.makeText(mContext, "Error: " + error.getMessage(), Toast.LENGTH_LONG)
-                            .show();
-                }
-
-                // Intent errorIntent = new
-                // Intent("com.yyxu.download.activities.DownloadListActivity");
-                // errorIntent.putExtra(MyIntents.TYPE, MyIntents.Types.ERROR);
-                // errorIntent.putExtra(MyIntents.ERROR_CODE, error);
-                // errorIntent.putExtra(MyIntents.ERROR_INFO,
-                // DownloadTask.getErrorInfo(error));
-                // errorIntent.putExtra(MyIntents.URL, task.getUrl());
-                // mContext.sendBroadcast(errorIntent);
-                //
-                // if (error != DownloadTask.ERROR_UNKOWN_HOST
-                // && error != DownloadTask.ERROR_BLOCK_INTERNET
-                // && error != DownloadTask.ERROR_TIME_OUT) {
-                // completeTask(task);
-                // }
-            }
-        };
-        if (downloadId >= 0) {
-            return new DownloadTask(mContext, downloadId, url, StorageUtils.FILE_ROOT, taskListener);
-        } else {
-            return new DownloadTask(mContext, url, StorageUtils.FILE_ROOT, taskListener);
         }
     }
 
@@ -392,8 +337,7 @@ public class DownloadManager extends Thread {
         }
 
         public DownloadTask poll() {
-
-            DownloadTask task = null;
+            DownloadTask task;
             while (mDownloadingTasks.size() >= MAX_DOWNLOAD_THREAD_COUNT
                     || (task = taskQueue.poll()) == null) {
                 try {
@@ -427,6 +371,9 @@ public class DownloadManager extends Thread {
         public boolean remove(DownloadTask task) {
 
             return taskQueue.remove(task);
+        }
+        public Queue<DownloadTask> getQueue() {
+            return taskQueue;
         }
     }
 

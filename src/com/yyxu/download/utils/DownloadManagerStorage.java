@@ -3,17 +3,16 @@ package com.yyxu.download.utils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.util.Log;
+
+import com.yyxu.download.model.DownloadInfo;
 
 public class DownloadManagerStorage {
 
@@ -25,38 +24,34 @@ public class DownloadManagerStorage {
 
     private SharedPreferences preferences;
     private Context context;
-    private HashMap<Long, String> downloadInformation;
+    private HashMap<Long, DownloadInfo> downloadInformationList;
 
     public DownloadManagerStorage(Context context) {
         this.context = context;
         preferences = context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE);
-        downloadInformation = new HashMap<>();
-        downloadInformation = readDownloadTasksObjectFromFile();
+        downloadInformationList = new HashMap<>();
+        downloadInformationList = readDownloadTasksObjectFromFile();
     }
 
-	public void storeDownloadTask(long downloadId, String url) {
-		downloadInformation.put(downloadId, url);
-        writeDownloadTasksObjectToFile(downloadInformation);
+	public void storeDownloadTask(long downloadId, DownloadInfo downloadInfo) {
+		downloadInformationList.put(downloadId, downloadInfo);
+        writeDownloadTasksObjectToFile(downloadInformationList);
 	}
 
 	public void clearDownloadTask(long downloadId) {
-		downloadInformation.remove(downloadId);
-        writeDownloadTasksObjectToFile(downloadInformation);
+		downloadInformationList.remove(downloadId);
+        writeDownloadTasksObjectToFile(downloadInformationList);
 	}
 
-	public String getURL(long downloadId) {
-		return downloadInformation.get(downloadId);
-	}
-
-    public HashMap<Long, String> getDownloadInformation() {
-        return downloadInformation;
+    public HashMap<Long, DownloadInfo> getDownloadInformationList() {
+        return downloadInformationList;
     }
 
-    private HashMap<Long, String> readDownloadTasksObjectFromFile() {
+    private HashMap<Long, DownloadInfo> readDownloadTasksObjectFromFile() {
         try {
             File downloadsFile = new File(getDataDir(), DOWNLOAD_TASKS_FILE);
             ObjectInputStream objectInputStream = new ObjectInputStream(new FileInputStream(downloadsFile));
-            return (HashMap<Long, String>) objectInputStream.readObject();
+            return (HashMap<Long, DownloadInfo>) objectInputStream.readObject();
         } catch (Exception e) {
             Log.e(TAG, e.getMessage(), e);
             return new HashMap<>();

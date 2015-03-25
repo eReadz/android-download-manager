@@ -76,7 +76,7 @@ public class DownloadListActivity extends Activity {
             @Override
             public void onClick(View v) {
 
-                // downloadManager.addTask(Utils.url[urlIndex]);
+                // downloadManager.createAndAddDownloadTask(Utils.url[urlIndex]);
                 Intent downloadIntent = new Intent(DownloadManagerIntent.Action.ADD);
                 downloadIntent.setData(Uri.parse(Utils.url[urlIndex]));
                 startService(downloadIntent);

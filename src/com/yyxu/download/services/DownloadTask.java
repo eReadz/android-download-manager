@@ -4,6 +4,7 @@ package com.yyxu.download.services;
 import com.yyxu.download.error.FileAlreadyExistException;
 import com.yyxu.download.error.NoMemoryException;
 import com.yyxu.download.http.AndroidHttpClient;
+import com.yyxu.download.model.DownloadInfo;
 import com.yyxu.download.utils.NetworkUtils;
 import com.yyxu.download.utils.StorageUtils;
 
@@ -18,6 +19,7 @@ import android.accounts.NetworkErrorException;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.util.Log;
 
 import java.io.BufferedInputStream;
@@ -31,6 +33,7 @@ import java.net.URL;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.UUID;
@@ -54,11 +57,10 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     byte[] salt = { (byte) 0xA9, (byte) 0x9B, (byte) 0xC8, (byte) 0x32,
             (byte) 0x56, (byte) 0x35, (byte) 0xE3, (byte) 0x03 };
 
-    private long downloadId;
+    private DownloadInfo downloadInfo;
     private URL URL;
     private File file;
     private File tempFile;
-    private String url;
     private RandomAccessFile outputStream;
     private DownloadTaskListener listener;
     private Context context;
@@ -89,73 +91,62 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
         }
     }
 
-    public DownloadTask(Context context, String url, String path) throws MalformedURLException {
-        this(context, url, path, null);
+    public DownloadTask(Context context, DownloadInfo downloadInfo) throws MalformedURLException {
+        this(context, downloadInfo, null);
     }
 
-    public DownloadTask(Context context, String url, String path, DownloadTaskListener listener) throws MalformedURLException {
-        this(context, UUID.randomUUID().getMostSignificantBits(), url, path, listener);
-    }
-
-    public DownloadTask(Context context, long downloadId, String url, String path, DownloadTaskListener listener) throws MalformedURLException {
+    public DownloadTask(Context context, DownloadInfo downloadInfo, DownloadTaskListener listener) throws MalformedURLException {
         super();
-        this.downloadId = downloadId;
-        this.url = url;
-        this.URL = new URL(url);
-        this.listener = listener;
-        String fileName = new File(URL.getFile()).getName();
-        this.file = new File(path, fileName);
-        this.tempFile = new File(path, fileName + TEMP_SUFFIX);
         this.context = context;
+        this.downloadInfo = downloadInfo;
+        this.URL = new URL(downloadInfo.getUrl());
+        this.listener = listener;
+        this.file = new File(downloadInfo.getPath());
+        this.tempFile = new File(file.getPath() + TEMP_SUFFIX);
     }
 
     public long getDownloadId() {
-        return downloadId;
+        return downloadInfo.getDownloadId();
     }
 
     public String getUrl() {
+        return downloadInfo.getUrl();
+    }
 
-        return url;
+    public DownloadInfo getDownloadInfo() {
+        return downloadInfo;
     }
 
     public boolean isInterrupt() {
-
         return interrupt;
     }
 
     public long getDownloadPercent() {
-
         return downloadPercent;
     }
 
     public long getDownloadSize() {
-
         return downloadSize + previousFileSize;
     }
 
     public long getTotalSize() {
-
         return totalSize;
     }
 
     public long getDownloadSpeed() {
-
         return this.networkSpeed;
     }
 
     public long getTotalTime() {
-
         return this.totalTime;
     }
 
     public DownloadTaskListener getListener() {
-
         return this.listener;
     }
 
     @Override
     protected void onPreExecute() {
-
         previousTime = System.currentTimeMillis();
         if (listener != null)
             listener.preDownload(this);
@@ -170,7 +161,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
         } catch (NetworkErrorException | IOException | FileAlreadyExistException
                 | NoMemoryException | NoSuchAlgorithmException | NoSuchPaddingException
                 | InvalidKeyException | InvalidAlgorithmParameterException
-                | IllegalBlockSizeException | BadPaddingException e) {
+                | IllegalBlockSizeException | BadPaddingException | NoSuchProviderException e) {
             error = e;
             Log.e(TAG, e.getMessage(), e);
         } finally {
@@ -184,7 +175,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
 
     @Override
     protected void onProgressUpdate(Integer... progress) {
-
+        Log.d(TAG, "onProgressUpdate");
         if (progress.length > 1) {
             totalSize = progress[1];
             if (totalSize == -1) {
@@ -198,6 +189,8 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
             downloadSize = progress[0];
             downloadPercent = (downloadSize + previousFileSize) * 100 / totalSize;
             networkSpeed = downloadSize / totalTime;
+            Log.d(TAG, "Download Speed: " + networkSpeed);
+            Log.d(TAG, "Download Progess: " + downloadPercent);
             if (listener != null)
                 listener.updateProcess(this);
         }
@@ -233,7 +226,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     private HttpResponse response;
 
     private long download() throws NetworkErrorException, IOException, FileAlreadyExistException,
-            NoMemoryException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException {
+            NoMemoryException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException, NoSuchProviderException {
 
         if (DEBUG) {
             Log.v(TAG, "totalSize: " + totalSize);
@@ -250,7 +243,10 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
          * check file length
          */
         client = AndroidHttpClient.newInstance("DownloadTask");
-        httpGet = new HttpGet(url);
+        httpGet = new HttpGet(downloadInfo.getUrl());
+        if (!TextUtils.isEmpty(downloadInfo.getCredentials())) {
+            httpGet.setHeader("EREADZ-AUTHENTICATION", downloadInfo.getCredentials());
+        }
         response = client.execute(httpGet);
         totalSize = response.getEntity().getContentLength();
 
@@ -309,7 +305,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     }
 
     public int copy(InputStream input, RandomAccessFile out) throws IOException,
-            NetworkErrorException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException {
+            NetworkErrorException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException, NoSuchProviderException {
 
         if (input == null || out == null) {
             return -1;
@@ -326,7 +322,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
             sb.append(String.format("%02X ", b));
         }
         Log.d(TAG, "key: " + sb.toString());
-        Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        Cipher c = Cipher.getInstance("AES/CTR/NoPadding", "BC");
 //        Cipher c = Cipher.getInstance("AES/ECB/PKCS5Padding");
         SecretKeySpec k = new SecretKeySpec(key, "AES");
         byte[] iv = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};

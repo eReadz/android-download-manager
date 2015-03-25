@@ -315,13 +315,13 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
 
 
         //TODO: Get username and publication ID
-        byte[] key = generateKey("ramone", "ramone@ereadz.com");
+        byte[] key = generateKey(downloadInfo.getPublicationId(), downloadInfo.getAccountName());
 //        byte[] key = generateKey(file.getName(), "ramone@ereadz.com");
         StringBuilder sb = new StringBuilder();
         for (byte b : key) {
             sb.append(String.format("%02X ", b));
         }
-        Log.d(TAG, "key: " + sb.toString());
+//        Log.d(TAG, "key: " + sb.toString());
         Cipher c = Cipher.getInstance("AES/CTR/NoPadding", "BC");
 //        Cipher c = Cipher.getInstance("AES/ECB/PKCS5Padding");
         SecretKeySpec k = new SecretKeySpec(key, "AES");

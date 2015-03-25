@@ -8,12 +8,16 @@ public class DownloadInfo implements Serializable {
     private long downloadId;
     private String url;
     private String path;
+    private String accountName;
+    private String publicationId;
 
-    public DownloadInfo(String credentials, long downloadId, String url, String path) {
+    public DownloadInfo(String credentials, long downloadId, String url, String path, String accountName, String publicationId) {
         this.credentials = credentials;
         this.downloadId = downloadId;
         this.url = url;
         this.path = path;
+        this.accountName = accountName;
+        this.publicationId = publicationId;
     }
 
     public long getDownloadId() {
@@ -30,5 +34,13 @@ public class DownloadInfo implements Serializable {
 
     public String getCredentials() {
         return credentials;
+    }
+
+    public String getAccountName() {
+        return accountName;
+    }
+
+    public String getPublicationId() {
+        return publicationId;
     }
 }

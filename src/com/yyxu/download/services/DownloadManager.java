@@ -159,7 +159,7 @@ public class DownloadManager extends Thread {
     private void broadcastAddTask(String url, boolean isInterrupt) {
         Log.d(TAG, "broadcastAddTask: " + url);
         Intent nofityIntent = new Intent(DownloadManagerIntent.Action.ADD_COMPLETED);
-        nofityIntent.setData(Uri.parse(url));
+//        nofityIntent.setData(Uri.parse(url));
         nofityIntent.putExtra(DownloadManagerIntent.IS_PAUSED, isInterrupt);
         mContext.sendBroadcast(nofityIntent);
     }
@@ -196,10 +196,16 @@ public class DownloadManager extends Thread {
         return false;
     }
 
-    public boolean isDownloadingTask(long downloadId) {
+    public boolean hasTask(long downloadId) {
         DownloadTask task;
         for (int i = 0; i < mDownloadingTasks.size(); i++) {
             task = mDownloadingTasks.get(i);
+            if (task.getDownloadId() == downloadId) {
+                return true;
+            }
+        }
+        for (int i = 0; i < mTaskQueue.size(); i++) {
+            task = mTaskQueue.get(i);
             if (task.getDownloadId() == downloadId) {
                 return true;
             }
@@ -313,7 +319,7 @@ public class DownloadManager extends Thread {
 
             // notify list changed
             Intent nofityIntent = new Intent(DownloadManagerIntent.Action.DOWNLOAD_COMPLETED);
-            nofityIntent.setData(Uri.parse(task.getUrl()));
+//            nofityIntent.setData(Uri.parse(task.getUrl()));
             mContext.sendBroadcast(nofityIntent);
         }
     }

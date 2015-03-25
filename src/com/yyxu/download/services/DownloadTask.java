@@ -244,7 +244,9 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
          */
         client = AndroidHttpClient.newInstance("DownloadTask");
         httpGet = new HttpGet(downloadInfo.getUrl());
-        if (!TextUtils.isEmpty(downloadInfo.getCredentials())) {
+        if (!TextUtils.isEmpty(downloadInfo.getFacebookAuthToken())) {
+            httpGet.setHeader("FACEBOOK-AUTH-TOKEN", downloadInfo.getFacebookAuthToken());
+        } else if (!TextUtils.isEmpty(downloadInfo.getCredentials())) {
             httpGet.setHeader("EREADZ-AUTHENTICATION", downloadInfo.getCredentials());
         }
         response = client.execute(httpGet);
@@ -323,7 +325,6 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
         }
 //        Log.d(TAG, "key: " + sb.toString());
         Cipher c = Cipher.getInstance("AES/CTR/NoPadding", "BC");
-//        Cipher c = Cipher.getInstance("AES/ECB/PKCS5Padding");
         SecretKeySpec k = new SecretKeySpec(key, "AES");
         byte[] iv = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         IvParameterSpec ivspec = new IvParameterSpec(iv);

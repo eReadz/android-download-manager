@@ -8,7 +8,6 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
-import android.text.TextUtils;
 import android.util.Log;
 
 public class DownloadService extends Service {
@@ -88,11 +87,16 @@ public class DownloadService extends Service {
         Log.d(TAG, "onDestroy()");
     }
 
-    public boolean isDownloadingTask(long downloadId) {
-        return mDownloadManager.isDownloadingTask(downloadId);
+    public boolean hasTask(long downloadId) {
+        return mDownloadManager.hasTask(downloadId);
     }
 
     public boolean addTask(DownloadInfo downloadInfo) {
         return mDownloadManager.createAndAddDownloadTask(downloadInfo);
     }
+
+    public void cancelTask(long downloadId) {
+        mDownloadManager.deleteTask(downloadId);
+    }
+
 }

@@ -1,6 +1,7 @@
 
 package com.yyxu.download.services;
 
+import com.yyxu.download.R;
 import com.yyxu.download.error.FileAlreadyExistException;
 import com.yyxu.download.error.NoMemoryException;
 import com.yyxu.download.http.AndroidHttpClient;
@@ -16,9 +17,11 @@ import org.spongycastle.crypto.generators.PKCS5S2ParametersGenerator;
 import org.spongycastle.crypto.params.KeyParameter;
 
 import android.accounts.NetworkErrorException;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.provider.Settings;
+import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -51,7 +54,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     private final static int BUFFER_SIZE = 1024 * 8;
 
     private static final String TAG = "DownloadTask";
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
     private static final String TEMP_SUFFIX = ".download";
 
     byte[] salt = { (byte) 0xA9, (byte) 0x9B, (byte) 0xC8, (byte) 0x32,
@@ -74,6 +77,9 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     private long totalTime;
     private Throwable error = null;
     private boolean interrupt = false;
+
+    NotificationManager notificationManager;
+    NotificationCompat.Builder notificationBuilder;
 
     private final class ProgressReportingRandomAccessFile extends RandomAccessFile {
         private int progress = 0;
@@ -103,6 +109,9 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
         this.listener = listener;
         this.file = new File(downloadInfo.getPath());
         this.tempFile = new File(file.getPath() + TEMP_SUFFIX);
+
+        notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationBuilder = new NotificationCompat.Builder(context);
     }
 
     public long getDownloadId() {
@@ -148,8 +157,14 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     @Override
     protected void onPreExecute() {
         previousTime = System.currentTimeMillis();
-        if (listener != null)
+        notificationBuilder.setContentTitle("Downloading")
+                .setSmallIcon(R.drawable.ic_action_download)
+                .setContentText("Title of book").setProgress(100,0,true);
+        notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
+//                .setSmallIcon(R.drawable.ic_notification);
+        if (listener != null) {
             listener.preDownload(this);
+        }
     }
 
     @Override
@@ -161,7 +176,8 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
         } catch (NetworkErrorException | IOException | FileAlreadyExistException
                 | NoMemoryException | NoSuchAlgorithmException | NoSuchPaddingException
                 | InvalidKeyException | InvalidAlgorithmParameterException
-                | IllegalBlockSizeException | BadPaddingException | NoSuchProviderException e) {
+                | IllegalBlockSizeException | BadPaddingException | NoSuchProviderException
+                | NullPointerException e) {
             error = e;
             Log.e(TAG, e.getMessage(), e);
         } finally {
@@ -188,6 +204,8 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
             totalTime = System.currentTimeMillis() - previousTime;
             downloadSize = progress[0];
             downloadPercent = (downloadSize + previousFileSize) * 100 / totalSize;
+            notificationBuilder.setProgress(100, (int)downloadPercent, false);
+            notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
             networkSpeed = downloadSize / totalTime;
             Log.d(TAG, "Download Speed: " + networkSpeed);
             Log.d(TAG, "Download Progess: " + downloadPercent);
@@ -198,26 +216,33 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
 
     @Override
     protected void onPostExecute(Long result) {
-
-        if (result == -1 || interrupt || error != null) {
+        if (interrupt) {
+            notificationBuilder.setProgress(0,0,false).setContentText("Download Cancelled");
+            notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
+            return;
+        } else if (result == -1 || error != null) {
             if (DEBUG && error != null) {
                 Log.v(TAG, "Download failed." + error.getMessage());
             }
+            notificationBuilder.setProgress(0,0,false).setContentText("Download Failed");
+            notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
             if (listener != null) {
                 listener.errorDownload(this, error);
             }
             return;
+        } else {
+            // finish download
+            notificationBuilder.setProgress(0,0,false).setContentText("Download Complete");
+            notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
+            tempFile.renameTo(file);
         }
-        // finish download
-        tempFile.renameTo(file);
-        if (listener != null)
+
+        if (listener != null) {
             listener.finishDownload(this);
+        }
     }
 
-    @Override
-    public void onCancelled() {
-
-        super.onCancelled();
+    public void cancelDownload() {
         interrupt = true;
     }
 
@@ -226,7 +251,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     private HttpResponse response;
 
     private long download() throws NetworkErrorException, IOException, FileAlreadyExistException,
-            NoMemoryException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException, NoSuchProviderException {
+            NoMemoryException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException, NoSuchProviderException, NullPointerException {
 
         if (DEBUG) {
             Log.v(TAG, "totalSize: " + totalSize);
@@ -306,24 +331,23 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
 
     }
 
-    public int copy(InputStream input, RandomAccessFile out) throws IOException,
-            NetworkErrorException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException, NoSuchProviderException {
+    public int copy(InputStream input, RandomAccessFile randomAccessFileOutput) throws IOException,
+            NetworkErrorException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException, NoSuchProviderException, NullPointerException {
 
-        if (input == null || out == null) {
+        if (input == null || randomAccessFileOutput == null) {
             return -1;
         }
 
         byte[] buffer = new byte[BUFFER_SIZE];
 
 
-        //TODO: Get username and publication ID
         byte[] key = generateKey(downloadInfo.getPublicationId(), downloadInfo.getAccountName());
-//        byte[] key = generateKey(file.getName(), "ramone@ereadz.com");
         StringBuilder sb = new StringBuilder();
         for (byte b : key) {
             sb.append(String.format("%02X ", b));
         }
 //        Log.d(TAG, "key: " + sb.toString());
+
         Cipher c = Cipher.getInstance("AES/CTR/NoPadding", "BC");
         SecretKeySpec k = new SecretKeySpec(key, "AES");
         byte[] iv = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -332,7 +356,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
 
         BufferedInputStream in = new BufferedInputStream(input, BUFFER_SIZE);
         if (DEBUG) {
-            Log.v(TAG, "length" + out.length());
+            Log.v(TAG, "length" + randomAccessFileOutput.length());
         }
 
         int count = 0, bytesRead = 0;
@@ -340,7 +364,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
 
         try {
 
-            out.seek(out.length());
+            randomAccessFileOutput.seek(randomAccessFileOutput.length());
             byte[] output;
             while (!interrupt) {
                 bytesRead = in.read(buffer, 0, BUFFER_SIZE);
@@ -348,8 +372,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
                     break;
                 }
                 output = c.update(buffer, 0, bytesRead);
-                out.write(output);
-//                out.write(buffer, 0, bytesRead);
+                randomAccessFileOutput.write(output);
                 count += bytesRead;
 
                 /*
@@ -373,13 +396,17 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
                     errorBlockTimePreviousTime = -1;
                 }
             }
-            output = c.doFinal();
-            out.seek(out.length());
-            out.write(output);
+            Log.d(TAG, "Stopping Download: Should happen before crash hopefully");
+            //NOTE: Only finalize the file if the download was not interrupted and exited because it reached the end of the input stream
+            if (!interrupt) {
+                output = c.doFinal();
+                randomAccessFileOutput.seek(randomAccessFileOutput.length());
+                randomAccessFileOutput.write(output);
+            }
         } finally {
             client.close(); // must close client first
             client = null;
-            out.close();
+            randomAccessFileOutput.close();
             in.close();
             input.close();
         }

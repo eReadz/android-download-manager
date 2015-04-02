@@ -115,7 +115,7 @@ public class DownloadManager extends Thread {
 
             @Override
             public void errorDownload(DownloadTask task, Throwable error) {
-
+                //TODO: Delete partial file download
                 if (error != null) {
                     Toast.makeText(mContext, "Error: " + error.getMessage(), Toast.LENGTH_LONG)
                             .show();
@@ -261,7 +261,7 @@ public class DownloadManager extends Thread {
         //Delete the task from all the queues/lists
         for (DownloadTask downloadTask : mDownloadingTasks) {
             if (downloadTask.getDownloadId() == downloadId) {
-                downloadTask.onCancelled();
+                downloadTask.cancelDownload();
                 File file = new File(downloadTask.getDownloadInfo().getPath());
                 if (file.exists()) {
                     file.delete();
@@ -294,7 +294,7 @@ public class DownloadManager extends Thread {
 
     public synchronized void pauseTask(DownloadTask downloadTaskToBePaused) {
         if (mDownloadingTasks.contains(downloadTaskToBePaused)) {
-            downloadTaskToBePaused.onCancelled();
+            downloadTaskToBePaused.cancelDownload();
             // move to pausing list
             mDownloadingTasks.remove(downloadTaskToBePaused);
             mPausingTasks.add(downloadTaskToBePaused);
@@ -364,20 +364,13 @@ public class DownloadManager extends Thread {
         }
 
         public int size() {
-
             return taskQueue.size();
         }
 
-        @SuppressWarnings("unused")
-        public boolean remove(int position) {
-
-            return taskQueue.remove(get(position));
-        }
-
         public boolean remove(DownloadTask task) {
-
             return taskQueue.remove(task);
         }
+
         public Queue<DownloadTask> getQueue() {
             return taskQueue;
         }

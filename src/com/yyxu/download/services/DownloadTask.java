@@ -157,9 +157,9 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     @Override
     protected void onPreExecute() {
         previousTime = System.currentTimeMillis();
-        notificationBuilder.setContentTitle("Downloading")
+        notificationBuilder.setContentTitle(context.getString(R.string.downloading_title, downloadInfo.getTitle()))
                 .setSmallIcon(R.drawable.ic_action_download)
-                .setContentText("Title of book").setProgress(100,0,true);
+                .setProgress(100, 0, true);
         notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
 //                .setSmallIcon(R.drawable.ic_notification);
         if (listener != null) {
@@ -204,6 +204,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
             totalTime = System.currentTimeMillis() - previousTime;
             downloadSize = progress[0];
             downloadPercent = (downloadSize + previousFileSize) * 100 / totalSize;
+            notificationBuilder.setContentText(downloadPercent + "%");
             notificationBuilder.setProgress(100, (int)downloadPercent, false);
             notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
             networkSpeed = downloadSize / totalTime;
@@ -223,7 +224,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
             if (DEBUG && error != null) {
                 Log.v(TAG, "Download failed." + error.getMessage());
             }
-            notificationBuilder.setProgress(0,0,false).setContentText("Download Failed");
+            notificationBuilder.setProgress(0,0,false).setContentText("Download Failed: %1$s");
             notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
             if (listener != null) {
                 listener.errorDownload(this, error);
@@ -231,7 +232,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
             return;
         } else {
             // finish download
-            notificationBuilder.setProgress(0,0,false).setContentText("Download Complete");
+            notificationBuilder.setProgress(0,0,false).setContentText("Download Complete %1$s");
             notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
             tempFile.renameTo(file);
         }

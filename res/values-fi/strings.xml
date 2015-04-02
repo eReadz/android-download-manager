@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="downloading_title">Lataus käynnissä: %1$s</string>
+</resources>

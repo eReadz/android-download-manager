@@ -6,15 +6,17 @@ import java.util.UUID;
 public class DownloadInfo implements Serializable {
     private String credentials;
     private long downloadId;
+    private String title;
     private String url;
     private String path;
     private String accountName;
     private String publicationId;
     private String facebookAuthToken;
 
-    public DownloadInfo(String credentials, long downloadId, String url, String path, String accountName, String publicationId, String facebookAuthToken) {
+    public DownloadInfo(String credentials, long downloadId, String title, String url, String path, String accountName, String publicationId, String facebookAuthToken) {
         this.credentials = credentials;
         this.downloadId = downloadId;
+        this.title = title;
         this.url = url;
         this.path = path;
         this.accountName = accountName;
@@ -24,6 +26,10 @@ public class DownloadInfo implements Serializable {
 
     public long getDownloadId() {
         return downloadId;
+    }
+
+    public String getTitle() {
+        return title;
     }
 
     public String getUrl() {

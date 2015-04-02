@@ -217,8 +217,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     @Override
     protected void onPostExecute(Long result) {
         if (interrupt) {
-            notificationBuilder.setProgress(0,0,false).setContentText("Download Cancelled");
-            notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
+            notificationManager.cancel((int)getDownloadId());
             return;
         } else if (result == -1 || error != null) {
             if (DEBUG && error != null) {

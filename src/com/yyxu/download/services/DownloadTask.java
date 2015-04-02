@@ -54,7 +54,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     private final static int BUFFER_SIZE = 1024 * 8;
 
     private static final String TAG = "DownloadTask";
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     private static final String TEMP_SUFFIX = ".download";
 
     byte[] salt = { (byte) 0xA9, (byte) 0x9B, (byte) 0xC8, (byte) 0x32,

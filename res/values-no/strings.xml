@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="downloading_title">Laster ned: %1$s</string>
+    <string name="download_publication_failed">Nedlasting mislyktes: %1$s</string>
+    <string name="download_publication_complete">Nedlasting fullført: %1$s</string>
 </resources>

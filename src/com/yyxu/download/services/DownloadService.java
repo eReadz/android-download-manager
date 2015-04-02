@@ -135,6 +135,10 @@ public class DownloadService extends Service {
                     Toast.makeText(DownloadService.this, "Error: " + error.getMessage(), Toast.LENGTH_LONG)
                             .show();
                 }
+                downloadingTasks.remove(task);
+
+                Intent notifyIntent = new Intent(DownloadManagerIntent.Action.ERROR);
+                sendBroadcast(notifyIntent);
             }
         };
         return new DownloadTask(this, downloadInfo, taskListener);
@@ -146,8 +150,8 @@ public class DownloadService extends Service {
             downloadingTasks.remove(task);
 
             // notify list changed
-            Intent nofityIntent = new Intent(DownloadManagerIntent.Action.DOWNLOAD_COMPLETED);
-            sendBroadcast(nofityIntent);
+            Intent notifyIntent = new Intent(DownloadManagerIntent.Action.DOWNLOAD_COMPLETED);
+            sendBroadcast(notifyIntent);
         }
     }
 

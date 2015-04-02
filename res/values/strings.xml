@@ -3,4 +3,6 @@
     <string name="hello">Hello World, DownloadManager!</string>
     <string name="app_name">DownloadManager</string>
     <string name="downloading_title">Downloading: %1$s</string>
+    <string name="download_publication_failed">Download Failed: %1$s</string>
+    <string name="download_publication_complete">Download Complete: %1$s</string>
 </resources>

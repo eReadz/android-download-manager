@@ -224,7 +224,8 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
             if (DEBUG && error != null) {
                 Log.v(TAG, "Download failed." + error.getMessage());
             }
-            notificationBuilder.setProgress(0,0,false).setContentText("Download Failed: %1$s");
+            notificationBuilder.setProgress(0,0,false)
+                    .setContentTitle(context.getString(R.string.download_publication_failed, downloadInfo.getTitle()));
             notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
             if (listener != null) {
                 listener.errorDownload(this, error);
@@ -232,7 +233,8 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
             return;
         } else {
             // finish download
-            notificationBuilder.setProgress(0,0,false).setContentText("Download Complete %1$s");
+            notificationBuilder.setProgress(0,0,false)
+                    .setContentTitle(context.getString(R.string.download_publication_complete, downloadInfo.getTitle()));
             notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
             tempFile.renameTo(file);
         }

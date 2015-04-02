@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="downloading_title">Laddar ned: %1$s</string>
+    <string name="download_publication_failed">Nedladdning misslyckades: %1$s</string>
+    <string name="download_publication_complete">Nedladdning genomförd: %1$s</string>
 </resources>

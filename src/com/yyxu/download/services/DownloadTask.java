@@ -81,22 +81,6 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     NotificationManager notificationManager;
     NotificationCompat.Builder notificationBuilder;
 
-    private final class ProgressReportingRandomAccessFile extends RandomAccessFile {
-        private int progress = 0;
-
-        public ProgressReportingRandomAccessFile(File file, String mode)
-                throws FileNotFoundException {
-            super(file, mode);
-        }
-
-        @Override
-        public void write(byte[] buffer, int offset, int count) throws IOException {
-            super.write(buffer, offset, count);
-            progress += count;
-            publishProgress(progress);
-        }
-    }
-
     public DownloadTask(Context context, DownloadInfo downloadInfo) throws MalformedURLException {
         this(context, downloadInfo, null);
     }
@@ -160,7 +144,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
         notificationBuilder.setContentTitle(context.getString(R.string.downloading_title, downloadInfo.getTitle()))
                 .setSmallIcon(R.drawable.ic_action_download)
                 .setProgress(100, 0, true);
-        notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
+        notificationManager.notify((int) getDownloadId(), notificationBuilder.build());
 //                .setSmallIcon(R.drawable.ic_notification);
         if (listener != null) {
             listener.preDownload(this);
@@ -205,13 +189,15 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
             downloadSize = progress[0];
             downloadPercent = (downloadSize + previousFileSize) * 100 / totalSize;
             notificationBuilder.setContentText(downloadPercent + "%");
-            notificationBuilder.setProgress(100, (int)downloadPercent, false);
-            notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
+            notificationBuilder.setProgress(100, (int) downloadPercent, false);
+            notificationManager.notify((int) getDownloadId(), notificationBuilder.build());
             networkSpeed = downloadSize / totalTime;
             Log.d(TAG, "Download Speed: " + networkSpeed);
-            Log.d(TAG, "Download Progess: " + downloadPercent);
-            if (listener != null)
+            Log.d(TAG, "Download Progress: " + downloadPercent);
+
+            if (listener != null) {
                 listener.updateProcess(this);
+            }
         }
     }
 
@@ -219,7 +205,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
     protected void onPostExecute(Long result) {
         if (interrupt) {
             notificationManager.cancel((int)getDownloadId());
-            return;
+            tempFile.delete();
         } else if (result == -1 || error != null) {
             if (DEBUG && error != null) {
                 Log.v(TAG, "Download failed." + error.getMessage());
@@ -230,11 +216,12 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
             if (listener != null) {
                 listener.errorDownload(this, error);
             }
-            return;
+            tempFile.delete();
         } else {
             // finish download
             notificationBuilder.setProgress(0,0,false)
-                    .setContentTitle(context.getString(R.string.download_publication_complete, downloadInfo.getTitle()));
+                    .setContentTitle(context.getString(R.string.download_publication_complete, downloadInfo.getTitle()))
+                    .setContentText("100%");
             notificationManager.notify((int)getDownloadId(), notificationBuilder.build());
             tempFile.renameTo(file);
         }
@@ -314,7 +301,7 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
         /*
          * start download
          */
-        outputStream = new ProgressReportingRandomAccessFile(tempFile, "rw");
+        outputStream = new RandomAccessFile(tempFile, "rw");
 
         publishProgress(0, (int) totalSize);
 
@@ -361,7 +348,8 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
             Log.v(TAG, "length" + randomAccessFileOutput.length());
         }
 
-        int count = 0, bytesRead = 0;
+        int count = 0, bytesRead, currentPercentageCompleted;
+        int lastPercentageCompleted = -1;
         long errorBlockTimePreviousTime = -1, expireTime = 0;
 
         try {
@@ -376,6 +364,11 @@ public class DownloadTask extends AsyncTask<Void, Integer, Long> {
                 output = c.update(buffer, 0, bytesRead);
                 randomAccessFileOutput.write(output);
                 count += bytesRead;
+                currentPercentageCompleted = (int) Math.round(((float)count / (float)totalSize) * 100.0);
+                if (lastPercentageCompleted != currentPercentageCompleted) {
+                    lastPercentageCompleted = currentPercentageCompleted;
+                    publishProgress(count);
+                }
 
                 /*
                  * check network

@@ -115,7 +115,6 @@ public class DownloadManager extends Thread {
 
             @Override
             public void errorDownload(DownloadTask task, Throwable error) {
-                //TODO: Delete partial file download
                 if (error != null) {
                     Toast.makeText(mContext, "Error: " + error.getMessage(), Toast.LENGTH_LONG)
                             .show();

@@ -162,7 +162,6 @@ public class DownloadService extends Service {
 
                 downloadTask.cancelDownload();
 
-                //TODO: Delete partial download ending in .download
                 File file = new File(downloadTask.getDownloadInfo().getPath());
                 if (file.exists()) {
                     file.delete();

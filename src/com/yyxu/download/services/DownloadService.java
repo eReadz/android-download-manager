@@ -119,8 +119,9 @@ public class DownloadService extends Service {
                 Intent updateIntent = new Intent(DownloadManagerIntent.Action.PROGRESS_UPDATED);
                 updateIntent.putExtra(DownloadManagerIntent.PROCESS_SPEED, task.getDownloadSpeed() + "kbps | "
                         + task.getDownloadSize() + " / " + task.getTotalSize());
-                updateIntent.putExtra(DownloadManagerIntent.PROCESS_PROGRESS, task.getDownloadPercent() + "");
-                updateIntent.setData(Uri.parse(task.getUrl()));
+                updateIntent.putExtra(DownloadManagerIntent.PROCESS_PROGRESS, task.getDownloadPercent());
+                //NOTE: When setting data, the BroadcastReceiver doesn't work - perhaps because of the different package name. It may need to be declared in the Manifest.
+//                updateIntent.setData(Uri.parse(task.getUrl()));
                 sendBroadcast(updateIntent);
             }
 
